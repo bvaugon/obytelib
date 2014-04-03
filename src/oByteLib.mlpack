@@ -1,0 +1,35 @@
+###########################################################################
+##                                                                       ##
+##                              OByteLib                                 ##
+##                                                                       ##
+##                            Benoit Vaugon                              ##
+##                                                                       ##
+##    This file is distributed under the terms of the CeCILL license.    ##
+##    See file ../LICENSE-en.                                            ##
+##                                                                       ##
+###########################################################################
+
+astack
+bytefile
+code
+config
+crcs
+data
+dbug
+dlls
+dlpt
+extra
+index
+instr
+interp
+normalised_code
+normalised_instr
+normalised_interp
+prim
+section
+strsec
+symb
+tools
+tree
+value
+version

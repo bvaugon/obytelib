@@ -7,3 +7,8 @@
 *.cmx
 *.cmxs
 *.cmxa
+
+etc/*
+man/*
+src/_build/
+src/config.ml

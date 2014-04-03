@@ -1,0 +1,86 @@
+#! /bin/bash
+###########################################################################
+##                                                                       ##
+##                              OByteLib                                 ##
+##                                                                       ##
+##                            Benoit Vaugon                              ##
+##                                                                       ##
+##    This file is distributed under the terms of the CeCILL license.    ##
+##    See file LICENSE-en.                                               ##
+##                                                                       ##
+###########################################################################
+
+function error () {
+    echo "$@" 1>&2
+    exit 1
+}
+
+function usage () {
+    echo "$@" 1>&2
+    error "Usage: $0 [ -prefix <dir> ] [ -libdir <dir> ] [ -mandir <dir> ]"
+}
+
+function check_command () {
+    which "$1" > /dev/null
+    if [ $? -ne 0 ]; then
+	error "Error: \"$1\" not installed"
+    fi
+}
+
+###
+
+check_command "ocamlbuild"
+check_command "mkdir"
+check_command "pwd"
+check_command "cp"
+check_command "rm"
+
+###
+
+mkdir -p lib etc
+
+###
+
+OCAMLBUILD=$(which ocamlbuild)
+VERSION=$(cat VERSION)
+PWD=$(pwd)
+
+###
+
+LIBDIR=/usr/local/lib/obytelib
+MANDIR=/usr/local/man
+
+while [ $# -ne 0 ]; do
+    case "$1" in
+	-libdir)   LIBDIR="$2"; shift ;;
+	-mandir)   MANDIR="$2"; shift ;;
+	-prefix)
+	    LIBDIR="$2"/lib/obytelib
+	    MANDIR="$2"/man
+	    shift;;
+	*)
+	usage "Don't know what to do with \"$1\""
+    esac
+    shift
+done
+
+###
+
+echo "\
+VERSION = $VERSION
+
+OCAMLBUILD = $OCAMLBUILD -cflags -w,Ae-44,-warn-error,A -lflags -w,Ae-44,-warn-error,A -no-links -classic-display
+
+LIBDIR = $LIBDIR
+MAN3DIR = $MANDIR/man3
+" > etc/Makefile.conf
+
+###
+
+echo "\
+let version = \"$VERSION\";;
+" > etc/config.ml
+
+###
+
+echo "** OByteLib configuration completed successfully **"

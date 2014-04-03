@@ -1,0 +1,75 @@
+                   Installing OByteLib on a Unix machine
+                   -------------------------------------
+
+PREREQUISITES
+
+* The OCaml standard distribution
+
+
+INSTALLATION INSTRUCTIONS
+
+1- Configure the system. From the top directory, do:
+
+        ./configure
+
+This generates the configuration files "Makefile.conf" and "config.ml"
+in the ./etc/ subdirectory.
+
+The "configure" script accepts the following options:
+
+-bindir <dir>                   (default: /usr/local/bin)
+        Directory where the binaries will be installed.
+
+-mandir <dir>                   (default: /usr/local/man/man1)
+        Directory where the manual pages will be installed.
+
+-prefix <dir>                   (default: /usr/local)
+        Set bindir and mandir to <dir>/bin and <dir>/man/man1
+        respectively.
+
+Examples:
+
+  Standard installation in /usr/{bin,man} instead of /usr/local:
+    ./configure -prefix /usr
+
+  Installation in /usr, man pages in section "l":
+    ./configure -bindir /usr/bin -mandir /usr/man/manl
+
+
+2- From the top directory, do:
+
+        make
+
+This builds OByteLib in the local directory ./lib/.
+
+
+3- You can now install the OByteLib library. This will create the
+following command files (in the library directory selected during
+autoconfiguration):
+
+        oByteLib.cmi    OCaml interface
+        obytelib.cma    the library compiled in bytecode
+        obytelib.cmxa   the library compiled in native code
+        obytelib.a      the library native code archive
+        OByteLib.3o     manpage of the entry point module
+        OByteLib.*.3o   mangages of sub-modules
+
+From the top directory, become superuser and do:
+
+        make install
+
+4- Installation is complete. Time to clean up. From the toplevel
+directory, do:
+
+        make clean
+
+
+UNINSTALLATION INSTRUCTIONS
+
+1- If configuration files (./etc/Makefile.conf, ./etc/config.ml) have
+been lost, run again ./configure from the top directory with the same
+options as at step 1 of installation.
+
+2- From the top directory, become superuser and do:
+
+        make uninstall
