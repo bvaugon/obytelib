@@ -37,7 +37,7 @@ check_command "rm"
 
 ###
 
-mkdir -p lib etc
+mkdir -p lib etc man
 
 ###
 
