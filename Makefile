@@ -42,10 +42,7 @@ etc/Makefile.conf:
 	@echo "You must run ./configure before" 1>&2
 	@exit 1
 
-dist: clean
-	dist/distgen
-
 clean:
 	@make --no-print-directory -C src clean
 
-.PHONY: all config install uninstall dist clean
+.PHONY: all config install uninstall clean
