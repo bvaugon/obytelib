@@ -16,8 +16,8 @@
 (** Tool to mangage bytecode file versions *)
 module Version : sig
   (** The two bytecode versions corresponding to magic strings:
-      "Caml1999X008" and "Caml1999X010" *)
-  type t = | V008 | V010
+      "Caml1999X008", "Caml1999X010" and "Caml1999X011" *)
+  type t = V008 | V010 | V011
 
   (** Conversion from version to pretty string *)
   val to_string : t -> string

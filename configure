@@ -69,7 +69,7 @@ done
 echo "\
 VERSION = $VERSION
 
-OCAMLBUILD = $OCAMLBUILD -cflags -w,Ae-44,-warn-error,A -lflags -w,Ae-44,-warn-error,A -no-links -classic-display
+OCAMLBUILD = $OCAMLBUILD -cflags -w,Ae-44,-warn-error,A,-safe-string,-strict-formats,-strict-sequence -lflags -w,Ae-44,-warn-error,A,-safe-string,-strict-formats,-strict-sequence -no-links -classic-display
 
 LIBDIR = $LIBDIR
 MAN3DIR = $MANDIR/man3

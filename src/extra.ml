@@ -25,9 +25,9 @@ let read index ic =
         entry0.Index.offset rest in
   let length = stop - start in
   if length < 0 then Tools.fail "incompatible index";
-  let extra = String.create length in
+  let extra = Bytes.create length in
   really_input ic extra 0 length;
-  extra
+  Bytes.to_string extra
 
 let write oc extra =
   output_string oc extra

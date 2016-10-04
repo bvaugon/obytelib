@@ -11,13 +11,14 @@
 
 open Tools
 
-type t = V008 | V010
+type t = V008 | V010 | V011
 
-let versions = [ V008; V010 ]
+let versions = [ V008; V010; V011 ]
 
 let to_string v = match v with
   | V008 -> "008"
   | V010 -> "010"
+  | V011 -> "011"
 
 let to_magic v =
   "Caml1999X" ^ to_string v
@@ -34,8 +35,9 @@ let read ic =
   let file_size = in_channel_length ic in
   if file_size < magic_size then fail "too short file";
   let () = seek_in ic (file_size - magic_size) in
-  let magic_string = String.create magic_size in
+  let magic_string = Bytes.create magic_size in
   let () = really_input ic magic_string 0 magic_size in
+  let magic_string = Bytes.to_string magic_string in
   try of_magic magic_string
   with Not_found -> fail "unknown magic string: %S" magic_string
 

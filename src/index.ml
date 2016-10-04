@@ -19,9 +19,10 @@ let read_int ic offset =
   input_binary_int ic
 
 let read_name ic offset =
-  let buf = String.create 4 in
+  let buf = Bytes.create 4 in
   seek_in ic offset;
-  really_input ic buf 0 4; buf
+  really_input ic buf 0 4;
+  Bytes.to_string buf
 
 let read ic =
   let file_size = in_channel_length ic in

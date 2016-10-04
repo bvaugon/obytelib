@@ -213,12 +213,12 @@ let eval globals normed_code cfuns =
           accu := unit;
           incr pc;
         | GETSTRINGCHAR ->
-          accu := repr (obj !accu : string).[(obj (pop stack) : int)];
+          accu := repr (Bytes.get (obj !accu : bytes) (obj (pop stack) : int));
           incr pc;
         | SETSTRINGCHAR ->
           let i = pop stack in
           let c = pop stack in
-          (obj !accu : string).[(obj i : int)] <- (obj c : char);
+          Bytes.set (obj !accu : bytes) (obj i : int) (obj c : char);
           accu := unit;
           incr pc;
         | BRANCH ptr ->

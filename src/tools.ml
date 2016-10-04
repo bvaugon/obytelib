@@ -33,12 +33,12 @@ let to_string_of_bprint bprint x =
   Buffer.contents buf
 
 let input_binary_int_rev =
-  let buf4 = String.create 4 in
+  let buf4 = Bytes.create 4 in
   fun ic ->
     let () = really_input ic buf4 0 4 in
     let n =
-      (int_of_char buf4.[0]) lor (int_of_char buf4.[1] lsl 8) lor
-        (int_of_char buf4.[2] lsl 16) lor (int_of_char buf4.[3] lsl 24) in
+      (int_of_char (Bytes.get buf4 0)) lor (int_of_char (Bytes.get buf4 1) lsl 8) lor
+        (int_of_char (Bytes.get buf4 2) lsl 16) lor (int_of_char (Bytes.get buf4 3) lsl 24) in
     match Sys.word_size with
     | 32 -> n
     | 64 -> (n lsl 32) asr 32

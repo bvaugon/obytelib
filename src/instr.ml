@@ -349,8 +349,15 @@ let read version next_word =
   let opcode =
     let w = next_word () in
     match version with
-    | Version.V010 -> w
-    | Version.V008 -> if w <= 91 then w else w + 2 in
+    | Version.V008 ->
+      if w <= 91 then w else w + 2
+    | Version.V010 ->
+      w
+    | Version.V011 ->
+      if w <= 91 then w
+      else if w = 146 then 92
+      else if w = 147 then 93
+      else w + 2 in
   match opcode with
   |   0 -> ACC0
   |   1 -> ACC1
@@ -516,10 +523,14 @@ let read version next_word =
 
 let write version write_word write_ptr instr =
   let write_opcode w = match version, w with
+    | Version.V008, _ when w <= 91 -> write_word w
+    | Version.V008, (92 | 93) -> write_word 91
+    | Version.V008, _ -> write_word (w - 2)
     | Version.V010, _ -> write_word w
-    | Version.V008, (91 | 92 | 93) -> write_word 91
-    | Version.V008, _ when w < 91 -> write_word w
-    | Version.V008, _ -> write_word (w - 2) in
+    | Version.V011, _ when w <= 91 -> write_word w
+    | Version.V011, 92 -> write_word 146
+    | Version.V011, 93 -> write_word 147
+    | Version.V011, _ -> write_word (w - 2) in
   let write_ptrs delta ptrs = Array.iter (write_ptr delta) ptrs in
   match instr with
   | ACC0                      -> write_opcode 0
