@@ -12,8 +12,8 @@ INSTALLATION INSTRUCTIONS
 
         ./configure
 
-This generates the configuration files "Makefile.conf" and "config.ml"
-in the ./etc/ subdirectory.
+This generates the configuration files "Makefile.conf", "config.ml"
+and "prim.ml" in the ./etc/ subdirectory.
 
 The "configure" script accepts the following options:
 

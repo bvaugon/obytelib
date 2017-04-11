@@ -15,12 +15,12 @@ LIB = ../lib
 MAN = ../man
 SRCS = $(wildcard *.ml *.mli *.mlpack)
 TARGS = $(LIB)/oByteLib.cmi $(LIB)/obytelib.cma \
-	$(LIB)/obytelib.cmxa $(LIB)/obytelib.a \
+	$(LIB)/obytelib.cmxa $(LIB)/obytelib.a  \
 	$(MAN)/OByteLib.3o
 
 all: $(TARGS)
 
-_build/%: $(SRCS) config.ml
+_build/%: $(SRCS) prim.ml config.ml
 	@rm -f $@
 	$(OCAMLBUILD) -cflag -g -lflag -g $*
 
@@ -45,8 +45,11 @@ $(MAN)/OByteLib.3o: _build/OByteLib.3o
 config.ml: ../etc/config.ml
 	cp $< $@
 
+prim.ml: ../etc/prim.ml
+	cp $< $@
+
 clean:
 	@$(OCAMLBUILD) -clean
-	@rm -f $(TARGS) $(MAN)/*.3o config.ml
+	@rm -f $(TARGS) $(MAN)/*.3o prim.ml config.ml
 
 .PHONY: all clean

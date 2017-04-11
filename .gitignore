@@ -11,4 +11,5 @@
 etc/*
 man/*
 src/_build/
+src/prim.ml
 src/config.ml

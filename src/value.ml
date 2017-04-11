@@ -19,6 +19,7 @@ type t =
   | Float       of float
   | Float_array of float array
   | String      of string
+  | Object      of t array
   | Block       of int * t array
 
 (***)
@@ -33,6 +34,7 @@ let rec bprint buf value =
   | Float f        -> bprintf buf "%F" f
   | Float_array t  -> bprint_mlarray (fun buf f -> bprintf buf "%F" f) buf t
   | String s       -> bprintf buf "%S" s
+  | Object o       -> bprint_array "<" ";" ">" bprint buf o
   | Block (tag, b) -> bprint_array (sprintf "[%d|" tag) ";" "]" bprint buf b
 
 let to_string value =
@@ -46,10 +48,13 @@ let rec of_obj obj =
   let tag = Obj.tag obj in
   if tag = Obj.lazy_tag then fail "unexpected lazy block";
   if tag = Obj.closure_tag then fail "unexpected closure";
-  if tag = Obj.object_tag then fail "unexpected object";
   if tag = Obj.infix_tag then fail "unexpected closure";
   if tag = Obj.abstract_tag then fail "unexpected abstract block";
-  if tag = Obj.string_tag then String (Obj.obj obj : string)
+  if tag = Obj.object_tag then
+    let size = Obj.size obj in
+    let tab = Array.init size (fun i -> of_obj (Obj.field obj i)) in
+    Object tab
+  else if tag = Obj.string_tag then String (Obj.obj obj : string)
   else if tag = Obj.double_tag then Float (Obj.obj obj : float)
   else if tag = Obj.double_array_tag then Float_array (Obj.obj obj : float array)
   else if tag = Obj.custom_tag then
@@ -88,6 +93,11 @@ let make_to_obj () =
     | Float f        -> unify float_htbl f
     | Float_array t  -> Obj.repr t
     | String s       -> Obj.repr s
+    | Object o       ->
+      let len = Array.length o in
+      let obj = Obj.new_block Obj.object_tag len in
+      for i = 0 to len - 1 do Obj.set_field obj i (to_obj o.(i)) done;
+      obj
     | Block (tag, b) ->
       let len = Array.length b in
       let blk = Obj.new_block tag len in

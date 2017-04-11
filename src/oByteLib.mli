@@ -139,7 +139,7 @@ end
     hash of the corresponding interfaces *)
 module Crcs : sig
   (** Type of an entry of the CRCS section *)
-  type entry = { name: string; hash: string }
+  type entry = string * Digest.t option
 
   (** Type of an imported CRCS section: a list of entries *)
   type t = entry list
@@ -160,38 +160,63 @@ end
 
 (** Tools to manipulate a part of the DBUG section from a bytecode file *)
 module Dbug : sig
+  type ident_t = { stamp: int; name: string; mutable flags: int }
+
+  type 'a ident_data =
+    { ident: ident_t;
+      data: 'a;
+      previous: 'a ident_data option }
+
+  type 'a ident_tbl =
+    Empty
+  | Node of 'a ident_tbl * 'a ident_data * 'a ident_tbl * int
+
+  type compilation_env =
+    { ce_stack: int ident_tbl;
+      ce_heap: int ident_tbl;
+      ce_rec: int ident_tbl }
+
   (** Type representing expr positions in source files *)
-  type location = {
+  type location_t = {
     loc_start: Lexing.position;
     loc_end: Lexing.position;
     loc_ghost: bool;
   }
 
-  type fake_debug_event_kind
-  type fake_debug_event_info
-  type fake_env_summary
-  type fake_subst
-  type fake_compilation_env
-  type fake_debug_event_repr
-  (** Fake abstract types used to mask some huge parts of debug
-      informations *)
-
+  type env_summary
+  type subst_t
+  type types_type_expr
+  
   (** A debug event, with some field masked with abstract types *)
-  type debug_event = {
-    mutable ev_pos: int;                (** Position in bytecode           *)
-    ev_module: string;                  (** Name of defining module        *)
-    ev_loc: location;                   (** Location in source file        *)
-    ev_kind: fake_debug_event_kind;     (*  Before/after event             *)
-    ev_info: fake_debug_event_info;     (*  Extra information              *)
-    ev_typenv: fake_env_summary;        (*  Typing environment             *)
-    ev_typsubst: fake_subst;            (*  Substitution over types        *)
-    ev_compenv: fake_compilation_env;   (*  Compilation environment        *)
-    ev_stacksize: int;                  (** Size of stack frame            *)
-    ev_repr: fake_debug_event_repr;     (*  Position of the representative *)
-  }
+  type debug_event =
+    { mutable ev_pos: int;                (* Position in bytecode *)
+      ev_module: string;                  (* Name of defining module *)
+      ev_loc: location_t;                 (* Location in source file *)
+      ev_kind: debug_event_kind;          (* Before/after event *)
+      ev_info: debug_event_info;          (* Extra information *)
+      ev_typenv: env_summary;             (* Typing environment *)
+      ev_typsubst: subst_t;               (* Substitution over types *)
+      ev_compenv: compilation_env;        (* Compilation environment *)
+      ev_stacksize: int;                  (* Size of stack frame *)
+      ev_repr: debug_event_repr }         (* Position of the representative *)
+      
+  and debug_event_kind =
+    Event_before
+  | Event_after of types_type_expr
+  | Event_pseudo
+      
+  and debug_event_info =
+    Event_function
+  | Event_return of int
+  | Event_other
+      
+  and debug_event_repr =
+    Event_none
+  | Event_parent of int ref
+  | Event_child of int ref
 
   (** Type representing an imported DBUG section: a list of debug events *)
-  type t = (int * debug_event list) array
+  type t = (int * debug_event list * string list) array
 
   (** An empty DBUG section *)
   val empty : t
@@ -241,6 +266,7 @@ module Value : sig
     | Float       of float
     | Float_array of float array
     | String      of string
+    | Object      of t array
     | Block       of int * t array
 
   (** Convert a value to a pretty-string *)

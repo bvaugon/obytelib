@@ -30,6 +30,7 @@ function check_command () {
 ###
 
 check_command "ocamlbuild"
+check_command "ocamlrun"
 check_command "mkdir"
 check_command "pwd"
 check_command "cp"
@@ -42,6 +43,7 @@ mkdir -p lib etc man
 ###
 
 OCAMLBUILD=$(which ocamlbuild)
+OCAMLRUN=$(which ocamlrun)
 VERSION=$(cat VERSION)
 PWD=$(pwd)
 
@@ -80,6 +82,53 @@ MAN3DIR = $MANDIR/man3
 echo "\
 let version = \"$VERSION\";;
 " > etc/config.ml
+
+###
+
+PRIMS=$($OCAMLRUN -p |
+  grep -v caml_spacetime_only_works_for_native_code |
+  grep -v caml_register_code_fragment |
+  grep -v caml_get_current_environment |
+  grep -v caml_ensure_stack_capacity)
+
+echo "\
+include Strsec.Make(struct let section = Section.PRIM end)
+" > etc/prim.ml
+
+echo "$PRIMS" | sed 'sX\(.*\)Xexternal \1 : '"'"'a -> '"'"'a = "\1"X' >> etc/prim.ml
+
+echo "\
+
+let find_prim name =
+  match name with" >> etc/prim.ml
+
+echo "$PRIMS" | sed 'sX\(.*\)X  | "\1" -> Obj.repr \1X' >> etc/prim.ml
+
+echo "\
+  | _ -> Tools.fail \"external function %S not found\" name
+
+let apply narg cfun arg0 stack =
+  let open Astack in
+  let rec f narg cfun arg0 stack ofs =
+    match narg with
+    | 1 ->
+      (Obj.obj cfun : Obj.t -> Obj.t) arg0
+    | 2 ->
+      (Obj.obj cfun : Obj.t -> Obj.t -> Obj.t) arg0 (acc stack ofs)
+    | 3 ->
+      (Obj.obj cfun : Obj.t -> Obj.t -> Obj.t -> Obj.t) arg0 (acc stack ofs)
+        (acc stack (ofs + 1))
+    | 4 ->
+      (Obj.obj cfun : Obj.t -> Obj.t -> Obj.t -> Obj.t -> Obj.t) arg0
+        (acc stack ofs) (acc stack (ofs + 1)) (acc stack (ofs + 2))
+    | 5 ->
+      (Obj.obj cfun : Obj.t -> Obj.t -> Obj.t -> Obj.t -> Obj.t -> Obj.t)
+        arg0 (acc stack ofs) (acc stack (ofs + 1)) (acc stack (ofs + 2))
+        (acc stack (ofs + 3))
+    | _ ->
+      f (narg - 5) (f 5 cfun arg0 stack ofs) (acc stack (ofs + 4)) stack
+        (ofs + 5) in
+  f narg cfun arg0 stack 0" >> etc/prim.ml
 
 ###
 
