@@ -26,7 +26,6 @@ install: all
 	mkdir -p "$(LIBDIR)"
 	mkdir -p "$(MAN3DIR)"
 	cp lib/oByteLib.cmi  "$(LIBDIR)/"
-	cp lib/oByteLib.cmx  "$(LIBDIR)/"
 	cp lib/obytelib.cma  "$(LIBDIR)/"
 	cp lib/obytelib.cmxa "$(LIBDIR)/"
 	cp lib/obytelib.a    "$(LIBDIR)/"
