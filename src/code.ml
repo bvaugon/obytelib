@@ -17,15 +17,19 @@ let kosaraju_gen get_nexts instrs =
   let instr_nb = Array.length instrs in
   let colors = Array.make instr_nb (-1) in
   let nexts = Array.mapi get_nexts instrs in
+  let nexts = Array.map (List.filter (fun ind -> ind < instr_nb)) nexts in
   let preds = Array.make instr_nb [] in
   let rec run color ind =
     if colors.(ind) = -1 then (
       colors.(ind) <- color;
       List.iter (run color) nexts.(ind);
       List.iter (run color) preds.(ind);
-    ) in 
+    ) in
   Array.iteri (fun ind ->
-    List.iter (fun ind' -> preds.(ind') <- ind :: preds.(ind'))) nexts;
+    List.iter (fun ind' ->
+      preds.(ind') <- ind :: preds.(ind')
+    )
+  ) nexts;
   for ind = 0 to instr_nb - 1 do
     if colors.(ind) = -1 then run ind ind;
   done;
@@ -55,13 +59,19 @@ let print_gen get_ptrs get_nexts bprint_instr data symb prim oc instrs =
     done;
   end;
   let buf = Buffer.create 16 in
+  let data_nb = Array.length data in
+  let symb_nb = Array.length symb in
+  let prim_nb = Array.length prim in
   let pp_ptr buf ptr = bprintf buf "L%d" labels.(ptr) in
-  let pp_cfun buf idx = bprintf buf "%S" prim.(idx) in
+  let pp_cfun buf idx =
+    if idx >= prim_nb then bprintf buf "#%d" idx
+    else bprintf buf "%S" prim.(idx) in
   let pp_data buf ind =
-    let ident_opt = if ind >= Array.length symb then None else symb.(ind) in
-    match ident_opt, data.(ind) with
-    | None, Value.Int 0 -> bprintf buf "#%d" ind
-    | None, _           -> Value.bprint buf data.(ind)
+    let ident_opt = if ind >= symb_nb then None else symb.(ind) in
+    let data_opt = if ind >= data_nb then None else Some data.(ind) in
+    match ident_opt, data_opt with
+    | None, (Some (Value.Int 0) | None) -> bprintf buf "#%d" ind
+    | None, Some d -> Value.bprint buf d
     | Some ident, _     -> bprintf buf "{%s}" ident.Symb.name in
   for i = 0 to instr_nb - 1 do
     if i > 0 && colors.(i - 1) <> colors.(i) then fprintf oc "\n";
@@ -75,8 +85,7 @@ let print_gen get_ptrs get_nexts bprint_instr data symb prim oc instrs =
   done
 
 let print data symb prim oc instrs =
-  print_gen Instr.get_ptrs Instr.get_nexts Instr.bprint data symb prim oc
-    instrs
+  print_gen Instr.get_ptrs Instr.get_nexts Instr.bprint data symb prim oc instrs
 
 (***)
 
@@ -144,8 +153,20 @@ let write version oc code =
     output_byte oc ((w asr 16) land 0xFF);
     output_byte oc ((w asr 24) land 0xFF) in
   let export write_word ind instr =
-    Instr.write version (write_word ind)
+    Instr.write version
+      (write_word ind)
       (fun delta ptr -> write_word ind (ptr_map.(ptr) - ptr_map.(ind) - delta))
       instr in
   Array.iteri (export compute_ptrs) code;
   Array.iteri (export write_code) code
+
+(***)
+
+let size version code =
+  let counter = ref 0 in
+  Array.iter (fun instr ->
+    Instr.write version (fun _word -> incr counter) (fun _delta _ptr -> incr counter) instr
+  ) code;
+  !counter * 4
+
+(***)

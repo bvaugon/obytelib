@@ -102,8 +102,6 @@ type t =
   | PUSHTRAP           of int
   | POPTRAP
   | RAISE
-  | RERAISE
-  | RAISE_NOTRACE
   | CHECK_SIGNALS
   | C_CALL1            of int
   | C_CALL2            of int
@@ -158,6 +156,8 @@ type t =
   | STOP
   | EVENT
   | BREAK
+  | RERAISE
+  | RAISE_NOTRACE
 
 (***)
 
@@ -257,8 +257,6 @@ let bprint pp_ptr pp_cfun pp_data buf instr =
   | PUSHTRAP ptr              -> bprintf buf "PUSHTRAP %a" pp_ptr ptr
   | POPTRAP                   -> bprintf buf "POPTRAP"
   | RAISE                     -> bprintf buf "RAISE"
-  | RERAISE                   -> bprintf buf "RERAISE"
-  | RAISE_NOTRACE             -> bprintf buf "RAISE_NOTRACE"
   | CHECK_SIGNALS             -> bprintf buf "CHECK_SIGNALS"
   | C_CALL1 idx               -> bprintf buf "C_CALL1 %a" pp_cfun idx
   | C_CALL2 idx               -> bprintf buf "C_CALL2 %a" pp_cfun idx
@@ -313,6 +311,8 @@ let bprint pp_ptr pp_cfun pp_data buf instr =
   | STOP                      -> bprintf buf "STOP"
   | EVENT                     -> bprintf buf "EVENT"
   | BREAK                     -> bprintf buf "BREAK"
+  | RERAISE                   -> bprintf buf "RERAISE"
+  | RAISE_NOTRACE             -> bprintf buf "RAISE_NOTRACE"
 
 let to_string =
   let pp_ptr buf ptr = Printf.bprintf buf "%d" ptr in
@@ -350,14 +350,14 @@ let read version next_word =
     let w = next_word () in
     match version with
     | Version.V008 ->
-      if w <= 91 then w else w + 2
-    | Version.V010 ->
       w
-    | Version.V011 ->
+    | Version.V010 ->
       if w <= 91 then w
-      else if w = 146 then 92
-      else if w = 147 then 93
-      else w + 2 in
+      else if w = 92 then 146
+      else if w = 93 then 147
+      else w - 2
+    | Version.V011 ->
+      w in
   match opcode with
   |   0 -> ACC0
   |   1 -> ACC1
@@ -463,74 +463,74 @@ let read version next_word =
   |  89 -> PUSHTRAP (next_word ())
   |  90 -> POPTRAP
   |  91 -> RAISE
-  |  92 -> RERAISE
-  |  93 -> RAISE_NOTRACE
-  |  94 -> CHECK_SIGNALS
-  |  95 -> C_CALL1 (next_word ())
-  |  96 -> C_CALL2 (next_word ())
-  |  97 -> C_CALL3 (next_word ())
-  |  98 -> C_CALL4 (next_word ())
-  |  99 -> C_CALL5 (next_word ())
-  | 100 -> let narg = next_word () in let idx = next_word () in C_CALLN (narg, idx)
-  | 101 -> CONST0
-  | 102 -> CONST1
-  | 103 -> CONST2
-  | 104 -> CONST3
-  | 105 -> CONSTINT (next_word ())
-  | 106 -> PUSHCONST0
-  | 107 -> PUSHCONST1
-  | 108 -> PUSHCONST2
-  | 109 -> PUSHCONST3
-  | 110 -> PUSHCONSTINT (next_word ())
-  | 111 -> NEGINT
-  | 112 -> ADDINT
-  | 113 -> SUBINT
-  | 114 -> MULINT
-  | 115 -> DIVINT
-  | 116 -> MODINT
-  | 117 -> ANDINT
-  | 118 -> ORINT
-  | 119 -> XORINT
-  | 120 -> LSLINT
-  | 121 -> LSRINT
-  | 122 -> ASRINT
-  | 123 -> EQ
-  | 124 -> NEQ
-  | 125 -> LTINT
-  | 126 -> LEINT
-  | 127 -> GTINT
-  | 128 -> GEINT
-  | 129 -> OFFSETINT (next_word ())
-  | 130 -> OFFSETREF (next_word ())
-  | 131 -> ISINT
-  | 132 -> GETMETHOD
-  | 133 -> let n = next_word () in let ptr = next_word () in BEQ (n, ptr)
-  | 134 -> let n = next_word () in let ptr = next_word () in BNEQ (n, ptr)
-  | 135 -> let n = next_word () in let ptr = next_word () in BLTINT (n, ptr)
-  | 136 -> let n = next_word () in let ptr = next_word () in BLEINT (n, ptr)
-  | 137 -> let n = next_word () in let ptr = next_word () in BGTINT (n, ptr)
-  | 138 -> let n = next_word () in let ptr = next_word () in BGEINT (n, ptr)
-  | 139 -> ULTINT
-  | 140 -> UGEINT
-  | 141 -> let n = next_word () in let ptr = next_word () in BULTINT (n, ptr)
-  | 142 -> let n = next_word () in let ptr = next_word () in BUGEINT (n, ptr)
-  | 143 -> let tag = next_word () in let cache = next_word () in GETPUBMET (tag, cache)
-  | 144 -> GETDYNMET
-  | 145 -> STOP
-  | 146 -> EVENT
-  | 147 -> BREAK
+  |  92 -> CHECK_SIGNALS
+  |  93 -> C_CALL1 (next_word ())
+  |  94 -> C_CALL2 (next_word ())
+  |  95 -> C_CALL3 (next_word ())
+  |  96 -> C_CALL4 (next_word ())
+  |  97 -> C_CALL5 (next_word ())
+  |  98 -> let narg = next_word () in let idx = next_word () in C_CALLN (narg, idx)
+  |  99 -> CONST0
+  | 100 -> CONST1
+  | 101 -> CONST2
+  | 102 -> CONST3
+  | 103 -> CONSTINT (next_word ())
+  | 104 -> PUSHCONST0
+  | 105 -> PUSHCONST1
+  | 106 -> PUSHCONST2
+  | 107 -> PUSHCONST3
+  | 108 -> PUSHCONSTINT (next_word ())
+  | 109 -> NEGINT
+  | 110 -> ADDINT
+  | 111 -> SUBINT
+  | 112 -> MULINT
+  | 113 -> DIVINT
+  | 114 -> MODINT
+  | 115 -> ANDINT
+  | 116 -> ORINT
+  | 117 -> XORINT
+  | 118 -> LSLINT
+  | 119 -> LSRINT
+  | 120 -> ASRINT
+  | 121 -> EQ
+  | 122 -> NEQ
+  | 123 -> LTINT
+  | 124 -> LEINT
+  | 125 -> GTINT
+  | 126 -> GEINT
+  | 127 -> OFFSETINT (next_word ())
+  | 128 -> OFFSETREF (next_word ())
+  | 129 -> ISINT
+  | 130 -> GETMETHOD
+  | 131 -> let n = next_word () in let ptr = next_word () in BEQ (n, ptr)
+  | 132 -> let n = next_word () in let ptr = next_word () in BNEQ (n, ptr)
+  | 133 -> let n = next_word () in let ptr = next_word () in BLTINT (n, ptr)
+  | 134 -> let n = next_word () in let ptr = next_word () in BLEINT (n, ptr)
+  | 135 -> let n = next_word () in let ptr = next_word () in BGTINT (n, ptr)
+  | 136 -> let n = next_word () in let ptr = next_word () in BGEINT (n, ptr)
+  | 137 -> ULTINT
+  | 138 -> UGEINT
+  | 139 -> let n = next_word () in let ptr = next_word () in BULTINT (n, ptr)
+  | 140 -> let n = next_word () in let ptr = next_word () in BUGEINT (n, ptr)
+  | 141 -> let tag = next_word () in let cache = next_word () in GETPUBMET (tag, cache)
+  | 142 -> GETDYNMET
+  | 143 -> STOP
+  | 144 -> EVENT
+  | 145 -> BREAK
+  | 146 -> RERAISE
+  | 147 -> RAISE_NOTRACE
   | _ -> failwith (Printf.sprintf "invalid opcode: %d" opcode)
 
 let write version write_word write_ptr instr =
   let write_opcode w = match version, w with
-    | Version.V008, _ when w <= 91 -> write_word w
-    | Version.V008, (92 | 93) -> write_word 91
-    | Version.V008, _ -> write_word (w - 2)
-    | Version.V010, _ -> write_word w
-    | Version.V011, _ when w <= 91 -> write_word w
-    | Version.V011, 92 -> write_word 146
-    | Version.V011, 93 -> write_word 147
-    | Version.V011, _ -> write_word (w - 2) in
+    | Version.V008, (146 | 147) -> write_word 91
+    | Version.V008, _ -> write_word w
+
+    | Version.V010, 146 -> write_word 92
+    | Version.V010, 147 -> write_word 93
+    | Version.V010, _   -> write_word (if w <= 91 then w else w + 2)
+
+    | Version.V011, _ -> write_word w in
   let write_ptrs delta ptrs = Array.iter (write_ptr delta) ptrs in
   match instr with
   | ACC0                      -> write_opcode 0
@@ -625,59 +625,59 @@ let write version write_word write_ptr instr =
   | PUSHTRAP ptr              -> write_opcode 89; write_ptr 1 ptr
   | POPTRAP                   -> write_opcode 90
   | RAISE                     -> write_opcode 91
-  | RERAISE                   -> write_opcode 92
-  | RAISE_NOTRACE             -> write_opcode 93
-  | CHECK_SIGNALS             -> write_opcode 94
-  | C_CALL1 idx               -> write_opcode 95; write_word idx
-  | C_CALL2 idx               -> write_opcode 96; write_word idx
-  | C_CALL3 idx               -> write_opcode 97; write_word idx
-  | C_CALL4 idx               -> write_opcode 98; write_word idx
-  | C_CALL5 idx               -> write_opcode 99; write_word idx
-  | C_CALLN (narg, idx)       -> write_opcode 100; write_word narg; write_word idx
-  | CONST0                    -> write_opcode 101
-  | CONST1                    -> write_opcode 102
-  | CONST2                    -> write_opcode 103
-  | CONST3                    -> write_opcode 104
-  | CONSTINT n                -> write_opcode 105; write_word n
-  | PUSHCONST0                -> write_opcode 106
-  | PUSHCONST1                -> write_opcode 107
-  | PUSHCONST2                -> write_opcode 108
-  | PUSHCONST3                -> write_opcode 109
-  | PUSHCONSTINT n            -> write_opcode 110; write_word n
-  | NEGINT                    -> write_opcode 111
-  | ADDINT                    -> write_opcode 112
-  | SUBINT                    -> write_opcode 113
-  | MULINT                    -> write_opcode 114
-  | DIVINT                    -> write_opcode 115
-  | MODINT                    -> write_opcode 116
-  | ANDINT                    -> write_opcode 117
-  | ORINT                     -> write_opcode 118
-  | XORINT                    -> write_opcode 119
-  | LSLINT                    -> write_opcode 120
-  | LSRINT                    -> write_opcode 121
-  | ASRINT                    -> write_opcode 122
-  | EQ                        -> write_opcode 123
-  | NEQ                       -> write_opcode 124
-  | LTINT                     -> write_opcode 125
-  | LEINT                     -> write_opcode 126
-  | GTINT                     -> write_opcode 127
-  | GEINT                     -> write_opcode 128
-  | OFFSETINT n               -> write_opcode 129; write_word n
-  | OFFSETREF n               -> write_opcode 130; write_word n
-  | ISINT                     -> write_opcode 131
-  | GETMETHOD                 -> write_opcode 132
-  | BEQ (n, ptr)              -> write_opcode 133; write_word n; write_ptr 2 ptr
-  | BNEQ (n, ptr)             -> write_opcode 134; write_word n; write_ptr 2 ptr
-  | BLTINT (n, ptr)           -> write_opcode 135; write_word n; write_ptr 2 ptr
-  | BLEINT (n, ptr)           -> write_opcode 136; write_word n; write_ptr 2 ptr
-  | BGTINT (n, ptr)           -> write_opcode 137; write_word n; write_ptr 2 ptr
-  | BGEINT (n, ptr)           -> write_opcode 138; write_word n; write_ptr 2 ptr
-  | ULTINT                    -> write_opcode 139
-  | UGEINT                    -> write_opcode 140
-  | BULTINT (n, ptr)          -> write_opcode 141; write_word n; write_ptr 2 ptr
-  | BUGEINT (n, ptr)          -> write_opcode 142; write_word n; write_ptr 2 ptr
-  | GETPUBMET (tag, cache)    -> write_opcode 143; write_word tag; write_word cache
-  | GETDYNMET                 -> write_opcode 144
-  | STOP                      -> write_opcode 145
-  | EVENT                     -> write_opcode 146
-  | BREAK                     -> write_opcode 147
+  | CHECK_SIGNALS             -> write_opcode 92
+  | C_CALL1 idx               -> write_opcode 93; write_word idx
+  | C_CALL2 idx               -> write_opcode 94; write_word idx
+  | C_CALL3 idx               -> write_opcode 95; write_word idx
+  | C_CALL4 idx               -> write_opcode 96; write_word idx
+  | C_CALL5 idx               -> write_opcode 97; write_word idx
+  | C_CALLN (narg, idx)       -> write_opcode 98; write_word narg; write_word idx
+  | CONST0                    -> write_opcode 99
+  | CONST1                    -> write_opcode 100
+  | CONST2                    -> write_opcode 101
+  | CONST3                    -> write_opcode 102
+  | CONSTINT n                -> write_opcode 103; write_word n
+  | PUSHCONST0                -> write_opcode 104
+  | PUSHCONST1                -> write_opcode 105
+  | PUSHCONST2                -> write_opcode 106
+  | PUSHCONST3                -> write_opcode 107
+  | PUSHCONSTINT n            -> write_opcode 108; write_word n
+  | NEGINT                    -> write_opcode 109
+  | ADDINT                    -> write_opcode 110
+  | SUBINT                    -> write_opcode 111
+  | MULINT                    -> write_opcode 112
+  | DIVINT                    -> write_opcode 113
+  | MODINT                    -> write_opcode 114
+  | ANDINT                    -> write_opcode 115
+  | ORINT                     -> write_opcode 116
+  | XORINT                    -> write_opcode 117
+  | LSLINT                    -> write_opcode 118
+  | LSRINT                    -> write_opcode 119
+  | ASRINT                    -> write_opcode 120
+  | EQ                        -> write_opcode 121
+  | NEQ                       -> write_opcode 122
+  | LTINT                     -> write_opcode 123
+  | LEINT                     -> write_opcode 124
+  | GTINT                     -> write_opcode 125
+  | GEINT                     -> write_opcode 126
+  | OFFSETINT n               -> write_opcode 127; write_word n
+  | OFFSETREF n               -> write_opcode 128; write_word n
+  | ISINT                     -> write_opcode 129
+  | GETMETHOD                 -> write_opcode 130
+  | BEQ (n, ptr)              -> write_opcode 131; write_word n; write_ptr 2 ptr
+  | BNEQ (n, ptr)             -> write_opcode 132; write_word n; write_ptr 2 ptr
+  | BLTINT (n, ptr)           -> write_opcode 133; write_word n; write_ptr 2 ptr
+  | BLEINT (n, ptr)           -> write_opcode 134; write_word n; write_ptr 2 ptr
+  | BGTINT (n, ptr)           -> write_opcode 135; write_word n; write_ptr 2 ptr
+  | BGEINT (n, ptr)           -> write_opcode 136; write_word n; write_ptr 2 ptr
+  | ULTINT                    -> write_opcode 137
+  | UGEINT                    -> write_opcode 138
+  | BULTINT (n, ptr)          -> write_opcode 139; write_word n; write_ptr 2 ptr
+  | BUGEINT (n, ptr)          -> write_opcode 140; write_word n; write_ptr 2 ptr
+  | GETPUBMET (tag, cache)    -> write_opcode 141; write_word tag; write_word cache
+  | GETDYNMET                 -> write_opcode 142
+  | STOP                      -> write_opcode 143
+  | EVENT                     -> write_opcode 144
+  | BREAK                     -> write_opcode 145
+  | RERAISE                   -> write_opcode 146
+  | RAISE_NOTRACE             -> write_opcode 147

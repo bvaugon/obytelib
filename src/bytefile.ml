@@ -59,7 +59,7 @@ let write_vmcmd oc vmpath vmarg =
   
 let read file_name =
   let ic =
-    try open_in file_name
+    try open_in_bin file_name
     with _ -> fail "fail to open file %S for reading" file_name in
   try
     let (vmpath, vmarg) = read_vmcmd ic in
@@ -121,8 +121,7 @@ let write file_name version ?vmpath ?vmarg
     fail "fail to write bytecode file %S (%s)" file_name msg
   | exn ->
     close_out oc;
-    fail "fail to write bytecode file %S (internal error: %s)"
-      file_name (Printexc.to_string exn)
+    fail "fail to write bytecode file %S (internal error: %s)" file_name (Printexc.to_string exn)
     
 
 (***)

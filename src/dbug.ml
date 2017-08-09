@@ -9,10 +9,8 @@
 (*                                                                       *)
 (*************************************************************************)
 
-type ident_t = { stamp: int; name: string; mutable flags: int }
-
 type 'a ident_data =
-  { ident: ident_t;
+  { ident: Symb.ident;
     data: 'a;
     previous: 'a ident_data option }
 

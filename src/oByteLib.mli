@@ -158,12 +158,33 @@ module Crcs : sig
   val write : out_channel -> t -> unit
 end
 
+(** Management of the SYMB section containing meta-data about global
+    table (see the DATA section) *)
+module Symb : sig
+  (** Type of an identifier *)
+  type ident = { stamp: int; name: string; mutable flags: int }
+
+  (** Type of the symbol map *)
+  type t = ident option array
+
+  (** An empty symbol map *)
+  val empty : t
+
+  (** Pretty-print the SYMB section *)
+  val print : out_channel -> t -> unit
+
+  (** Read the SYMB section from a bytecode file. Return empty if no
+      SYMB section found *)
+  val read : Index.t -> in_channel -> t
+
+  (** Write the SYMB section in a bytecode file *)
+  val write : out_channel -> t -> unit
+end
+
 (** Tools to manipulate a part of the DBUG section from a bytecode file *)
 module Dbug : sig
-  type ident_t = { stamp: int; name: string; mutable flags: int }
-
   type 'a ident_data =
-    { ident: ident_t;
+    { ident: Symb.ident;
       data: 'a;
       previous: 'a ident_data option }
 
@@ -229,29 +250,6 @@ module Dbug : sig
   val read : Index.t -> in_channel -> t
 
   (** Write the DBUG section to a bytecode file *)
-  val write : out_channel -> t -> unit
-end
-
-(** Management of the SYMB section containing meta-data about global
-    table (see the DATA section) *)
-module Symb : sig
-  (** Type of an identifier *)
-  type ident = { stamp: int; name: string; mutable flags: int }
-
-  (** Type of the symbol map *)
-  type t = ident option array
-
-  (** An empty symbol map *)
-  val empty : t
-
-  (** Pretty-print the SYMB section *)
-  val print : out_channel -> t -> unit
-
-  (** Read the SYMB section from a bytecode file. Return empty if no
-      SYMB section found *)
-  val read : Index.t -> in_channel -> t
-
-  (** Write the SYMB section in a bytecode file *)
   val write : out_channel -> t -> unit
 end
 
@@ -423,8 +421,6 @@ module Instr : sig
     | PUSHTRAP           of int
     | POPTRAP
     | RAISE
-    | RERAISE
-    | RAISE_NOTRACE
     | CHECK_SIGNALS
     | C_CALL1            of int
     | C_CALL2            of int
@@ -479,6 +475,8 @@ module Instr : sig
     | STOP
     | EVENT
     | BREAK
+    | RERAISE
+    | RAISE_NOTRACE
 
   (** Convert an instruction to a pretty-string *)
   val to_string : t -> string
@@ -534,7 +532,7 @@ module Bytefile : sig
     symb    : Symb.t;
   }
 
-  (** Pretty-print a bytecode file contents *)
+  (** Pretty-print the contents of a bytecode file *)
   val print : out_channel -> t -> unit
 
   (** Read and import a bytecode file *)
@@ -544,6 +542,63 @@ module Bytefile : sig
   val write : string -> Version.t -> ?vmpath:string -> ?vmarg:string ->
     ?extra:string -> ?dlpt:Dlpt.t -> ?dlls:Dlls.t -> ?crcs:Crcs.t ->
     ?dbug:Dbug.t -> ?symb:Symb.t -> Data.t -> Prim.t -> Code.t -> unit
+end
+
+(** Cmo file *)
+
+module Cmofile : sig
+  type constant =
+  | Const_int       of int
+  | Const_char      of char
+  | Const_string    of string * string option
+  | Const_float     of string
+  | Const_int32     of int32
+  | Const_int64     of int64
+  | Const_nativeint of nativeint
+
+  type structured_constant =
+  | Const_base        of constant
+  | Const_pointer     of int
+  | Const_block       of int * structured_constant list
+  | Const_float_array of string list
+  | Const_immstring   of string
+
+  type reloc_info =
+  | Reloc_literal   of structured_constant  (* structured constant    *)
+  | Reloc_getglobal of Symb.ident           (* reference to a global  *)
+  | Reloc_setglobal of Symb.ident           (* definition of a global *)
+  | Reloc_primitive of string               (* C primitive number     *)
+    
+  type compilation_unit = {
+    cu_name               : string;                          (* Name of compilation unit                                                        *)
+    mutable cu_pos        : int;                             (* Absolute position in file                                                       *)
+    cu_codesize           : int;                             (* Size of code block                                                              *)
+    cu_reloc              : (reloc_info * int) list;         (* Relocation information                                                          *)
+    cu_imports            : (string * Digest.t option) list; (* Names and CRC of intfs imported                                                 *)
+    cu_required_globals   : Symb.ident list;                 (* Compilation units whose initialization side effects must occur before this one. *)
+    cu_primitives         : string list;                     (* Primitives declared inside                                                      *)
+    mutable cu_force_link : bool;                            (* Must be linked even if unref'ed                                                 *)
+    mutable cu_debug      : int;                             (* Position of debugging info, or 0                                                *)
+    cu_debugsize          : int;                             (* Length of debugging info                                                        *)
+  }
+
+  type t = {
+    version : Version.t;
+    unit    : compilation_unit;
+    code    : Code.t;
+  }
+
+  (** Pretty-print the contents of a .cmo file *)
+  val print : out_channel -> t -> unit
+
+  (** Read and import a .cmo file *)
+  val read : string -> t
+
+  (** Export and write a .cmo file *)
+  val write : string -> t -> unit
+
+  (** Resolve pointers to global data, symbols and primitives *)
+  val reloc : t -> Data.t * Symb.t * Prim.t * Code.t
 end
 
 (** Normalised code *)
