@@ -1,0 +1,5 @@
+description = "Obytelib"
+requires = ""
+archive(byte) = "obytelib.cma"
+archive(native) = "obytelib.cmxa"
+plugin(byte) = "obytelib.cma"
