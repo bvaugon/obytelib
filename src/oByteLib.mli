@@ -484,6 +484,11 @@ module Instr : sig
   (** Get the code pointers from an instruction. Code pointers are
       indexes in the table of instructions (see the Code module) *)
   val get_ptrs : t -> int list
+
+  (** Get the list of instruction indexes that may be executed after the
+      execution of the given one. The first integer argument should be
+      the index in the code of the given instruction. *)
+  val get_nexts : int -> t -> int list
 end
 
 (** Reading, writting and pretty-printing of the CODE section *)
@@ -687,6 +692,11 @@ module Normalised_instr : sig
       pointers ar indexes in the code represented by an array of
       instructions *)
   val get_ptrs : t -> int list
+
+  (** Get the list of instruction indexes that may be executed after the
+      execution of the given one. The first integer argument should be
+      the index in the code of the given instruction. *)
+  val get_nexts : int -> t -> int list
 end
 
 (** Normalised version of Code (see Normalised_instr) *)
