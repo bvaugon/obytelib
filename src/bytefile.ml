@@ -94,7 +94,7 @@ let write file_name version ?vmpath ?vmarg
   let oflags = [ Open_wronly; Open_creat; Open_trunc; Open_binary ] in
   let oc =
     try open_out_gen oflags 0o751 file_name
-    with _ -> fail "fail to open file %S for writting" file_name in
+    with _ -> fail "fail to open file %S for writing" file_name in
   let write_section section writer xxx =
     let offset = pos_out oc in
     let () = writer oc xxx in
