@@ -41,10 +41,9 @@ end
 (** Tool to manipulate section names *)
 module Section : sig
   (** Bytecode files are divided into sections represented by a 4-letter name *)
-  type t = CODE | DLPT | DLLS | PRIM | DATA | SYMB | CRCS | DBUG
+  type t = CODE | DLPT | DLLS | PRIM | DATA | SYMB | CRCS | DBUG | Unknown of string
 
-  (** Convert a 4-letter string to it associated constructor. Raise a
-      Failure if no section match *)
+  (** Convert a 4-letter string to it associated constructor. *)
   val of_string : string -> t
 
   (** Convert a construtor to its 4-letter associated name *)
