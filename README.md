@@ -26,8 +26,8 @@ let () =
     Bytefile.print stdout bytefile;        (* Pretty-print its contents    *)
     Interp.eval_bytefile bytefile;         (* Evaluate its code            *)
   | ".cmo" ->
-    let cmofile = Cmofile.read inpath in   (* Load the given .cmo file *)
-    Cmofile.print stdout cmofile           (* Pretty-print its code    *)
+    let cmofile = Cmofile.read inpath in   (* Load the given .cmo file     *)
+    Cmofile.print stdout cmofile           (* Pretty-print its contents    *)
   | _ ->
     usage ()
 ```
