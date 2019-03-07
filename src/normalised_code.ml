@@ -126,8 +126,9 @@ let of_code instrs =
     | Instr.VECTLENGTH                -> put (UNAPP VECTLENGTH)
     | Instr.GETVECTITEM               -> put GETVECTITEM
     | Instr.SETVECTITEM               -> put SETVECTITEM
+    | Instr.GETBYTESCHAR              -> put GETBYTESCHAR
+    | Instr.SETBYTESCHAR              -> put SETBYTESCHAR
     | Instr.GETSTRINGCHAR             -> put GETSTRINGCHAR
-    | Instr.SETSTRINGCHAR             -> put SETSTRINGCHAR
     | Instr.BRANCH ptr                -> put (BRANCH ptr)
     | Instr.BRANCHIF ptr              -> put (BRANCHIF ptr)
     | Instr.BRANCHIFNOT ptr           -> put (BRANCHIFNOT ptr)
@@ -307,8 +308,9 @@ let to_code normed_instrs =
     | UNAPP VECTLENGTH      -> put Instr.VECTLENGTH
     | GETVECTITEM           -> put Instr.GETVECTITEM
     | SETVECTITEM           -> put Instr.SETVECTITEM
+    | GETBYTESCHAR          -> put Instr.GETBYTESCHAR
+    | SETBYTESCHAR          -> put Instr.SETBYTESCHAR
     | GETSTRINGCHAR         -> put Instr.GETSTRINGCHAR
-    | SETSTRINGCHAR         -> put Instr.SETSTRINGCHAR
     | BRANCH ptr            -> put (Instr.BRANCH ptr)
     | BRANCHIF ptr          -> put (Instr.BRANCHIF ptr)
     | BRANCHIFNOT ptr       -> put (Instr.BRANCHIFNOT ptr)

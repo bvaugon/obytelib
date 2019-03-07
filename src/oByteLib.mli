@@ -16,8 +16,8 @@
 (** Tool to mangage bytecode file versions *)
 module Version : sig
   (** The two bytecode versions corresponding to magic strings:
-      "Caml1999X008", "Caml1999X010" and "Caml1999X011" *)
-  type t = V008 | V010 | V011
+      "Caml1999X008", "Caml1999X010", "Caml1999X011" or "Caml1999X023" *)
+  type t = V008 | V010 | V011 | V023
 
   (** Conversion from version to pretty string *)
   val to_string : t -> string
@@ -410,8 +410,9 @@ module Instr : sig
     | VECTLENGTH
     | GETVECTITEM
     | SETVECTITEM
+    | GETBYTESCHAR
+    | SETBYTESCHAR
     | GETSTRINGCHAR
-    | SETSTRINGCHAR
     | BRANCH             of int
     | BRANCHIF           of int
     | BRANCHIFNOT        of int
@@ -651,8 +652,9 @@ module Normalised_instr : sig
     | SETFLOATFIELD  of int
     | GETVECTITEM
     | SETVECTITEM
+    | GETBYTESCHAR
+    | SETBYTESCHAR
     | GETSTRINGCHAR
-    | SETSTRINGCHAR
     | BRANCH         of int
     | BRANCHIF       of int
     | BRANCHIFNOT    of int

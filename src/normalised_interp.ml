@@ -212,10 +212,10 @@ let eval globals normed_code cfuns =
           set_field !accu (obj i : int) v;
           accu := unit;
           incr pc;
-        | GETSTRINGCHAR ->
+        | GETBYTESCHAR | GETSTRINGCHAR ->
           accu := repr (Bytes.get (obj !accu : bytes) (obj (pop stack) : int));
           incr pc;
-        | SETSTRINGCHAR ->
+        | SETBYTESCHAR ->
           let i = pop stack in
           let c = pop stack in
           Bytes.set (obj !accu : bytes) (obj i : int) (obj c : char);
@@ -378,14 +378,17 @@ let eval globals normed_code cfuns =
 
 let make_cfun_map normed_code prim =
   let prim_nb = Array.length prim in
-  let used = Array.make prim_nb false in
-  let cfuns = Array.make prim_nb (Obj.repr ()) in
-  let manage_c_call instr = match instr with
-    | Normalised_instr.C_CALL (_, idx) -> used.(idx) <- true
+  let arities = Array.make prim_nb None in
+  let cfuns = Array.make prim_nb (Obj.repr (fun _ -> assert false)) in
+  let compute_arities instr =
+    match instr with
+    | Normalised_instr.C_CALL (arity, idx) -> arities.(idx) <- Some arity
     | _ -> () in
-  Array.iter manage_c_call normed_code;
+  Array.iter compute_arities normed_code;
   for i = 0 to prim_nb - 1 do
-    if used.(i) then cfuns.(i) <- Prim.find_prim prim.(i);
+    match arities.(i) with
+    | None -> ()
+    | Some arity -> cfuns.(i) <- Prim.find_prim arity prim.(i)
   done;
   cfuns
 

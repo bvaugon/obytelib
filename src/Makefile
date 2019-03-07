@@ -14,9 +14,9 @@ include ../etc/Makefile.conf
 LIB = ../lib
 MAN = ../man
 SRCS = $(wildcard *.ml *.mli *.mlpack)
-TARGS = $(LIB)/oByteLib.cmi $(LIB)/obytelib.cma \
-	$(LIB)/obytelib.cmxa $(LIB)/obytelib.a  \
-	$(MAN)/OByteLib.3o
+TARGS = $(LIB)/oByteLib.cmi $(LIB)/oByteLib.cmx \
+	$(LIB)/obytelib.cma $(LIB)/obytelib.a   \
+	$(LIB)/obytelib.cmxa $(MAN)/OByteLib.3o
 
 all: $(TARGS)
 
@@ -25,6 +25,9 @@ _build/%: $(SRCS) prim.ml config.ml
 	$(OCAMLBUILD) -cflag -g -lflag -g $*
 
 $(LIB)/oByteLib.cmi: _build/oByteLib.cmi
+	cp $< $@
+
+$(LIB)/oByteLib.cmx: _build/oByteLib.cmx
 	cp $< $@
 
 $(LIB)/obytelib.cma: _build/oByteLib.cma

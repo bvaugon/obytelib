@@ -229,6 +229,7 @@ let version_of_magic str =
   | "Caml1999O008" -> Some Version.V008
   | "Caml1999O010" -> Some Version.V010
   | "Caml1999O011" -> Some Version.V011
+  | "Caml1999O023" -> Some Version.V023
   | _ -> None
 
 let magic_of_version v =
@@ -236,6 +237,7 @@ let magic_of_version v =
   | Version.V008 -> "Caml1999O008"
   | Version.V010 -> "Caml1999O010"
   | Version.V011 -> "Caml1999O011"
+  | Version.V023 -> "Caml1999O023"
 
 let magic_len = String.length (magic_of_version Version.V008)
 
@@ -256,8 +258,8 @@ let reloc cmo =
     match sc with
     | Const_base c ->
       value_of_constant c
-    | Const_pointer _ ->
-      assert false (* TODO *)
+    | Const_pointer ptr ->
+      Value.Int ptr
     | Const_block (tag, fields) ->
       let fields = Array.of_list (List.map value_of_structured_constant fields) in
       if tag = Obj.object_tag then Value.Object fields
@@ -456,7 +458,8 @@ let read file_name =
       match version with
       | Version.V008 -> Legacy_V008.export (input_value ic : Legacy_V008.compilation_unit_v008)
       | Version.V010 -> Legacy_V010.export (input_value ic : Legacy_V010.compilation_unit_v010)
-      | Version.V011 -> (input_value ic : compilation_unit) in
+      | Version.V011 -> (input_value ic : compilation_unit)
+      | Version.V023 -> (input_value ic : compilation_unit) in
     let index = [ { Index.section = Section.CODE; offset = unit.cu_pos; length = unit.cu_codesize } ] in
     let code = Code.read version index ic in
     close_in ic;
@@ -487,7 +490,8 @@ let write file_name { version; unit; code } =
     match version with
     | Version.V008 -> Marshal.to_string (Legacy_V008.import unit) []
     | Version.V010 -> Marshal.to_string (Legacy_V010.import unit) []
-    | Version.V011 -> Marshal.to_string unit [] in
+    | Version.V011 -> Marshal.to_string unit []
+    | Version.V023 -> Marshal.to_string unit [] in
   let oc =
     try open_out file_name
     with _ -> fail "fail to open file %S for writting" file_name in

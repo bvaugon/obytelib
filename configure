@@ -85,6 +85,8 @@ let version = \"$VERSION\";;
 
 ###
 
+MAX_PRIM_ARITY=5
+
 PRIMS=$($OCAMLRUN -p |
   grep -v caml_spacetime_only_works_for_native_code |
   grep -v caml_register_code_fragment |
@@ -95,17 +97,34 @@ echo "\
 include Strsec.Make(struct let section = Section.PRIM end)
 " > etc/prim.ml
 
-echo "$PRIMS" | sed 'sX\(.*\)Xexternal \1 : '"'"'a -> '"'"'a = "\1"X' >> etc/prim.ml
+for prim in $PRIMS; do
+    for ((i=1; i <= MAX_PRIM_ARITY; i++)); do
+        echo -n "external ${prim}_$i : 'a" >> etc/prim.ml
+        for ((j = 1; j <= i; j ++)); do
+            echo -n " -> 'a" >> etc/prim.ml
+        done
+        echo " = \"$prim\"" >> etc/prim.ml
+    done
+    echo >> etc/prim.ml
+done
 
 echo "\
 
-let find_prim name =
-  match name with" >> etc/prim.ml
+let find_prim arity name =
+  match arity, name with" >> etc/prim.ml
 
-echo "$PRIMS" | sed 'sX\(.*\)X  | "\1" -> Obj.repr \1X' >> etc/prim.ml
+for prim in $PRIMS; do
+    for ((i=1; i <= MAX_PRIM_ARITY; i++)); do
+        echo "  | $i, \"$prim\" -> Obj.repr ${prim}_$i" >> etc/prim.ml
+    done
+    echo >> etc/prim.ml
+done
 
 echo "\
-  | _ -> Tools.fail \"external function %S not found\" name
+  | 1, \"caml_ensure_stack_capacity\" -> Obj.repr (fun _ -> ())
+  | 1, \"caml_is_printable\" -> Obj.repr (fun _ -> true)
+
+  | _ -> Tools.fail \"external function %S of arity %d not found\" name arity
 
 let apply narg cfun arg0 stack =
   let open Astack in

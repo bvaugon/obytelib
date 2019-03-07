@@ -309,10 +309,10 @@ let eval globals code cfuns =
           set_field !accu (obj i : int) v;
           accu := unit;
           incr pc;
-        | GETSTRINGCHAR ->
+        | GETBYTESCHAR | GETSTRINGCHAR ->
           accu := repr (Bytes.get (obj !accu : bytes) (obj (pop stack) : int));
           incr pc;
-        | SETSTRINGCHAR ->
+        | SETBYTESCHAR ->
           let i = pop stack in
           let c = pop stack in
           Bytes.set (obj !accu : bytes) (obj i : int) (obj c : char);
@@ -504,15 +504,22 @@ let eval globals code cfuns =
 
 let make_cfun_map code prim =
   let prim_nb = Array.length prim in
-  let used = Array.make prim_nb false in
-  let cfuns = Array.make prim_nb (Obj.repr ()) in
-  let manage_c_call instr = match instr with
-    | Instr.C_CALL1 idx | Instr.C_CALL2 idx | Instr.C_CALL3 idx | Instr.C_CALL4 idx
-    | Instr.C_CALL5 idx | Instr.C_CALLN (_, idx) -> used.(idx) <- true
+  let arities = Array.make prim_nb None in
+  let cfuns = Array.make prim_nb (Obj.repr (fun _ -> assert false)) in
+  let compute_arities instr =
+    match instr with
+    | Instr.C_CALL1 idx      -> arities.(idx) <- Some 1
+    | Instr.C_CALL2 idx      -> arities.(idx) <- Some 2
+    | Instr.C_CALL3 idx      -> arities.(idx) <- Some 3
+    | Instr.C_CALL4 idx      -> arities.(idx) <- Some 4
+    | Instr.C_CALL5 idx      -> arities.(idx) <- Some 5
+    | Instr.C_CALLN (n, idx) -> arities.(idx) <- Some n
     | _ -> () in
-  Array.iter manage_c_call code;
+  Array.iter compute_arities code;
   for i = 0 to prim_nb - 1 do
-    if used.(i) then cfuns.(i) <- Prim.find_prim prim.(i);
+    match arities.(i) with
+    | None -> ()
+    | Some arity -> cfuns.(i) <- Prim.find_prim arity prim.(i)
   done;
   cfuns
 

@@ -48,10 +48,11 @@ let fix_std_exceptions globals =
   if global_nb < 12 then
     fail "invalid DATA: no place for standard exceptions" global_nb;
   let repl ind exn =
-    let e = Obj.field (Obj.repr exn) 0 in
+    let e = Obj.repr exn in
+    let e = if Obj.tag e <> 0 then e else (assert (Obj.size e = 2); Obj.field e 0) in
     if e <> globals.(ind) then
       fail "invalid DATA: incompatible standard exception %d" ind;
-    globals.(ind) <- e in
+    globals.(ind) <- Obj.repr exn in
   Array.iteri repl [|
     Out_of_memory;
     Sys_error "";

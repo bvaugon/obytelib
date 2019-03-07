@@ -92,8 +92,9 @@ type t =
   | VECTLENGTH
   | GETVECTITEM
   | SETVECTITEM
+  | GETBYTESCHAR
+  | SETBYTESCHAR
   | GETSTRINGCHAR
-  | SETSTRINGCHAR
   | BRANCH             of int
   | BRANCHIF           of int
   | BRANCHIFNOT        of int
@@ -247,8 +248,9 @@ let bprint pp_ptr pp_cfun pp_data buf instr =
   | VECTLENGTH                -> bprintf buf "VECTLENGTH"
   | GETVECTITEM               -> bprintf buf "GETVECTITEM"
   | SETVECTITEM               -> bprintf buf "SETVECTITEM"
+  | GETBYTESCHAR              -> bprintf buf "GETBYTESCHAR"
+  | SETBYTESCHAR              -> bprintf buf "SETBYTESCHAR"
   | GETSTRINGCHAR             -> bprintf buf "GETSTRINGCHAR"
-  | SETSTRINGCHAR             -> bprintf buf "SETSTRINGCHAR"
   | BRANCH ptr                -> bprintf buf "BRANCH %a" pp_ptr ptr
   | BRANCHIF ptr              -> bprintf buf "BRANCHIF %a" pp_ptr ptr
   | BRANCHIFNOT ptr           -> bprintf buf "BRANCHIFNOT %a" pp_ptr ptr
@@ -357,6 +359,8 @@ let read version next_word =
       else if w = 93 then 147
       else w - 2
     | Version.V011 ->
+      w
+    | Version.V023 ->
       w in
   match opcode with
   |   0 -> ACC0
@@ -447,8 +451,8 @@ let read version next_word =
   |  79 -> VECTLENGTH
   |  80 -> GETVECTITEM
   |  81 -> SETVECTITEM
-  |  82 -> GETSTRINGCHAR
-  |  83 -> SETSTRINGCHAR
+  |  82 -> GETBYTESCHAR
+  |  83 -> SETBYTESCHAR
   |  84 -> BRANCH (next_word ())
   |  85 -> BRANCHIF (next_word ())
   |  86 -> BRANCHIFNOT (next_word ())
@@ -519,18 +523,25 @@ let read version next_word =
   | 145 -> BREAK
   | 146 -> RERAISE
   | 147 -> RAISE_NOTRACE
+  | 148 -> GETSTRINGCHAR
   | _ -> failwith (Printf.sprintf "invalid opcode: %d" opcode)
 
 let write version write_word write_ptr instr =
-  let write_opcode w = match version, w with
+  let write_opcode w =
+    match version, w with
     | Version.V008, (146 | 147) -> write_word 91
+    | Version.V008, 148 -> write_word 82
     | Version.V008, _ -> write_word w
 
     | Version.V010, 146 -> write_word 92
     | Version.V010, 147 -> write_word 93
+    | Version.V010, 148 -> write_word 82
     | Version.V010, _   -> write_word (if w <= 91 then w else w + 2)
 
-    | Version.V011, _ -> write_word w in
+    | Version.V011, 148 -> write_word 82
+    | Version.V011, _ -> write_word w
+      
+    | Version.V023, _ -> write_word w in
   let write_ptrs delta ptrs = Array.iter (write_ptr delta) ptrs in
   match instr with
   | ACC0                      -> write_opcode 0
@@ -615,8 +626,8 @@ let write version write_word write_ptr instr =
   | VECTLENGTH                -> write_opcode 79
   | GETVECTITEM               -> write_opcode 80
   | SETVECTITEM               -> write_opcode 81
-  | GETSTRINGCHAR             -> write_opcode 82
-  | SETSTRINGCHAR             -> write_opcode 83
+  | GETBYTESCHAR              -> write_opcode 82
+  | SETBYTESCHAR              -> write_opcode 83
   | BRANCH ptr                -> write_opcode 84; write_ptr 1 ptr
   | BRANCHIF ptr              -> write_opcode 85; write_ptr 1 ptr
   | BRANCHIFNOT ptr           -> write_opcode 86; write_ptr 1 ptr
@@ -681,3 +692,4 @@ let write version write_word write_ptr instr =
   | BREAK                     -> write_opcode 145
   | RERAISE                   -> write_opcode 146
   | RAISE_NOTRACE             -> write_opcode 147
+  | GETSTRINGCHAR             -> write_opcode 148

@@ -39,8 +39,9 @@ type t =
   | SETFLOATFIELD  of int
   | GETVECTITEM
   | SETVECTITEM
+  | GETBYTESCHAR
+  | SETBYTESCHAR
   | GETSTRINGCHAR
-  | SETSTRINGCHAR
   | BRANCH         of int
   | BRANCHIF       of int
   | BRANCHIFNOT    of int
@@ -130,8 +131,9 @@ let bprint pp_ptr pp_cfun pp_data buf instr =
   | SETFLOATFIELD ind     -> bprintf buf "SETFLOATFIELD %d" ind
   | GETVECTITEM           -> bprintf buf "GETVECTITEM"
   | SETVECTITEM           -> bprintf buf "SETVECTITEM"
-  | GETSTRINGCHAR         -> bprintf buf "GETSTRINGCHAR" 
-  | SETSTRINGCHAR         -> bprintf buf "SETSTRINGCHAR"
+  | GETBYTESCHAR          -> bprintf buf "GETBYTESCHAR" 
+  | SETBYTESCHAR          -> bprintf buf "SETBYTESCHAR"
+  | GETSTRINGCHAR         -> bprintf buf "GETSTRINGCHAR"
   | BRANCH ptr            -> bprintf buf "BRANCH %a" pp_ptr ptr
   | BRANCHIF ptr          -> bprintf buf "BRANCHIF %a" pp_ptr ptr
   | BRANCHIFNOT ptr       -> bprintf buf "BRANCHIFNOT %a" pp_ptr ptr

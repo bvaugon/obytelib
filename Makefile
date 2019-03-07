@@ -27,6 +27,7 @@ install: all
 	mkdir -p "$(MAN3DIR)"
 	cp META  "$(LIBDIR)/"
 	cp lib/oByteLib.cmi  "$(LIBDIR)/"
+	cp lib/oByteLib.cmx  "$(LIBDIR)/"
 	cp lib/obytelib.cma  "$(LIBDIR)/"
 	cp lib/obytelib.cmxa "$(LIBDIR)/"
 	cp lib/obytelib.a    "$(LIBDIR)/"
@@ -35,6 +36,7 @@ install: all
 uninstall:
 	rm -f "$(LIBDIR)/META"
 	rm -f "$(LIBDIR)/oByteLib.cmi"
+	rm -f "$(LIBDIR)/oByteLib.cmx"
 	rm -f "$(LIBDIR)/obytelib.cma"
 	rm -f "$(LIBDIR)/obytelib.cmxa"
 	rm -f "$(LIBDIR)/obytelib.a"
