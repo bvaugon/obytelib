@@ -17,7 +17,7 @@
 module Version : sig
   (** The two bytecode versions corresponding to magic strings:
       "Caml1999X008", "Caml1999X010", "Caml1999X011" or "Caml1999X023" *)
-  type t = V008 | V010 | V011 | V023
+  type t = V008 | V010 | V011 | V023 | V025 | V026 | V027
 
   (** Conversion from version to pretty string *)
   val to_string : t -> string

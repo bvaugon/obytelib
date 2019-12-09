@@ -360,8 +360,12 @@ let read version next_word =
       else w - 2
     | Version.V011 ->
       w
-    | Version.V023 ->
-      w in
+    | Version.V023
+    | Version.V025
+    | Version.V026
+    | Version.V027
+      -> w
+  in
   match opcode with
   |   0 -> ACC0
   |   1 -> ACC1
@@ -541,7 +545,11 @@ let write version write_word write_ptr instr =
     | Version.V011, 148 -> write_word 82
     | Version.V011, _ -> write_word w
       
-    | Version.V023, _ -> write_word w in
+    | Version.V023, _ -> write_word w
+    | Version.V025, _ -> write_word w
+    | Version.V026, _ -> write_word w
+    | Version.V027, _ -> write_word w
+  in
   let write_ptrs delta ptrs = Array.iter (write_ptr delta) ptrs in
   match instr with
   | ACC0                      -> write_opcode 0
