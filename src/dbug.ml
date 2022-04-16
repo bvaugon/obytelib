@@ -9,10 +9,11 @@
 (*                                                                       *)
 (*************************************************************************)
 
-type 'a ident_data =
-  { ident: Symb.ident;
-    data: 'a;
-    previous: 'a ident_data option }
+type 'a ident_data = {
+  ident: Ident.t;
+  data: 'a;
+  previous: 'a ident_data option
+}
 
 type 'a ident_tbl =
     Empty

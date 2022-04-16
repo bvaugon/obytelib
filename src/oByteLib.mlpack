@@ -29,6 +29,7 @@ normalised_interp
 prim
 section
 strsec
+ident
 symb
 tools
 tree

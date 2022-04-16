@@ -22,7 +22,7 @@ let print symb oc data =
       match ident_opt with
       | None -> ()
       | Some ident ->
-        let s = Printf.sprintf "  (* %s *)" ident.Symb.name in
+        let s = Printf.sprintf "  (* %s *)" (Ident.name ident) in
         let sz = Buffer.length buf in
         let ofs = max 0 (78 - sz - (String.length s)) in
         for _i = 0 to ofs do Buffer.add_char buf ' ' done;

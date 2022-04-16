@@ -73,7 +73,7 @@ let read file_name =
     let dlls = Dlls.read index ic in
     let crcs = Crcs.read index ic in
     let dbug = Dbug.read index ic in
-    let symb = Symb.read index ic in
+    let symb = Symb.read version index ic in
     close_in ic;
     { version; vmpath; vmarg; index; extra; data;
       prim; code; dlpt; dlls; crcs; dbug; symb }
@@ -110,7 +110,7 @@ let write file_name version ?vmpath ?vmarg
     let i4 = write_section Section.DLLS Dlls.write dlls in
     let i5 = write_section Section.CRCS Crcs.write crcs in
     let i6 = write_section Section.DBUG Dbug.write dbug in
-    let i7 = write_section Section.SYMB Symb.write symb in
+    let i7 = write_section Section.SYMB (Symb.write version) symb in
     let index = [ i0; i1; i2; i3; i4; i5; i6; i7 ] in
     Index.write oc index;
     Version.write oc version;

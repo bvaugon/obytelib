@@ -15,9 +15,9 @@
 
 (** Tool to mangage bytecode file versions *)
 module Version : sig
-  (** The two bytecode versions corresponding to magic strings:
-      "Caml1999X008", "Caml1999X010", "Caml1999X011" or "Caml1999X023" *)
-  type t = V008 | V010 | V011 | V023
+  (** Bytecode versions corresponding to magic strings:
+      "Caml1999X008", "Caml1999X010", ..., "Caml1999X029" *)
+  type t = V008 | V010 | V011 | V022 | V023 | V025 | V026 | V027 | V028 | V029 | V030 | V031
 
   (** Conversion from version to pretty string *)
   val to_string : t -> string
@@ -157,14 +157,30 @@ module Crcs : sig
   val write : out_channel -> t -> unit
 end
 
+(** Management of identifiers serialized in SYMB and DBUG sections *)
+module Ident : sig
+  (** Type of identifiers *)
+  type t
+
+  (** Get name of an identifier *)
+  val name : t -> string
+
+  (** Pretty-print an identifier *)
+  val print : out_channel -> t -> unit
+  
+  (** Check compatibility between a bytecode file version and an identifier.
+      Raise a Failure if not compatible. *)
+  val check : Version.t -> t -> unit
+
+  (** Idem but for optional identifiers *)
+  val check_opt : Version.t -> t option -> unit
+end
+
 (** Management of the SYMB section containing meta-data about global
     table (see the DATA section) *)
 module Symb : sig
-  (** Type of an identifier *)
-  type ident = { stamp: int; name: string; mutable flags: int }
-
   (** Type of the symbol map *)
-  type t = ident option array
+  type t = Ident.t option array
 
   (** An empty symbol map *)
   val empty : t
@@ -172,18 +188,20 @@ module Symb : sig
   (** Pretty-print the SYMB section *)
   val print : out_channel -> t -> unit
 
-  (** Read the SYMB section from a bytecode file. Return empty if no
-      SYMB section found *)
-  val read : Index.t -> in_channel -> t
+  (** Read the SYMB section from a bytecode file.
+      Return empty if no SYMB section found.
+      Check compatibility with the given version. *)
+  val read : Version.t -> Index.t -> in_channel -> t
 
-  (** Write the SYMB section in a bytecode file *)
-  val write : out_channel -> t -> unit
+  (** Write the SYMB section in a bytecode file.
+      Check compatibility with the given version. *)
+  val write : Version.t -> out_channel -> t -> unit
 end
 
 (** Tools to manipulate a part of the DBUG section from a bytecode file *)
 module Dbug : sig
   type 'a ident_data =
-    { ident: Symb.ident;
+    { ident: Ident.t;
       data: 'a;
       previous: 'a ident_data option }
 
@@ -570,8 +588,8 @@ module Cmofile : sig
 
   type reloc_info =
   | Reloc_literal   of structured_constant  (* structured constant    *)
-  | Reloc_getglobal of Symb.ident           (* reference to a global  *)
-  | Reloc_setglobal of Symb.ident           (* definition of a global *)
+  | Reloc_getglobal of Ident.t              (* reference to a global  *)
+  | Reloc_setglobal of Ident.t              (* definition of a global *)
   | Reloc_primitive of string               (* C primitive number     *)
     
   type compilation_unit = {
@@ -580,7 +598,7 @@ module Cmofile : sig
     cu_codesize           : int;                             (* Size of code block                                                              *)
     cu_reloc              : (reloc_info * int) list;         (* Relocation information                                                          *)
     cu_imports            : (string * Digest.t option) list; (* Names and CRC of intfs imported                                                 *)
-    cu_required_globals   : Symb.ident list;                 (* Compilation units whose initialization side effects must occur before this one. *)
+    cu_required_globals   : Ident.t list;                    (* Compilation units whose initialization side effects must occur before this one. *)
     cu_primitives         : string list;                     (* Primitives declared inside                                                      *)
     mutable cu_force_link : bool;                            (* Must be linked even if unref'ed                                                 *)
     mutable cu_debug      : int;                             (* Position of debugging info, or 0                                                *)
@@ -736,7 +754,7 @@ module Interp : sig
   (** Interprete the given bytecode file in the current environment.
       Support callbacks, closure exchange and cross exceptions
       raise/catch. If an exception escapes from the bytecode, it is
-      raised through eval. Be aware of side effects provides by the C
+      raised through eval. Be aware of side effects provided by the C
       runtime which are shared between the current program and the
       bytecode program. For example: the bytecode at_exit function
       overload the current at_exit *)

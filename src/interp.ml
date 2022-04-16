@@ -36,36 +36,35 @@ let envacc env n =
 
 let offsetclosure env n =
   match env with
-  | No_closure | Closure _-> eval_error "recursive closure expected"
+  | No_closure | Closure _ -> eval_error "recursive closure expected"
   | Rec_closure (o, t, blk, i) -> Rec_closure (o, t, blk, i + n/2)
 
 let env_of_closure env =
   match env with
-  | No_closure |Rec_closure _-> eval_error "simple closure expected"
+  | No_closure | Rec_closure _ -> eval_error "simple closure expected"
   | Closure (_, blk) -> blk
 
 let eval globals code cfuns =
-  Instr.(Astack.(Obj.(
-  let unit = repr () in
+  let unit = Obj.repr () in
   let stack = Astack.create (1024 * 1024) 1024 unit in
-  let getenv_key = repr "UNIQUE KEY!" in
+  let getenv_key = Obj.repr (ref "UNIQUE KEY!") in
   let stop_pc = Array.length code - 1 in
-  if code.(stop_pc) <> STOP then
+  if code.(stop_pc) <> Instr.STOP then
     fail "invalid bytecode: should terminate by a STOP instruction";
   let rec box_env env =
-    repr (
+    Obj.repr (
       fun arg ->
-        if arg == getenv_key then repr env else
+        if arg == getenv_key then Obj.repr env else
           let accu = ref (box_env env) in
-          push stack (repr 0);          (* extra_args *)
-          push stack (repr No_closure); (* env        *)
-          push stack (repr stop_pc);    (* pc -> STOP *)
-          push stack arg;               (* the arg    *)
+          Astack.push stack (Obj.repr 0);          (* extra_args *)
+          Astack.push stack (Obj.repr No_closure); (* env        *)
+          Astack.push stack (Obj.repr stop_pc);    (* pc -> STOP *)
+          Astack.push stack arg;                   (* the arg    *)
           run (ptr_of_env env) env accu;
           !accu
     )
   and unbox_env f =
-    (obj f : Obj.t -> env) getenv_key
+    (Obj.obj f : Obj.t -> env) getenv_key
   and run init_pc init_env accu =
     let pc = ref init_pc in
     let env = ref init_env in
@@ -74,433 +73,436 @@ let eval globals code cfuns =
     try while true do
       try while true do
         match code.(!pc) with
-        | ACC0  -> accu := acc stack 0; incr pc;
-        | ACC1  -> accu := acc stack 1; incr pc;
-        | ACC2  -> accu := acc stack 2; incr pc;
-        | ACC3  -> accu := acc stack 3; incr pc;
-        | ACC4  -> accu := acc stack 4; incr pc;
-        | ACC5  -> accu := acc stack 5; incr pc;
-        | ACC6  -> accu := acc stack 6; incr pc;
-        | ACC7  -> accu := acc stack 7; incr pc;
-        | ACC n -> accu := acc stack n; incr pc;
-        | PUSH | PUSHACC0 -> push stack !accu; incr pc;
-        | PUSHACC1  -> push stack !accu; accu := acc stack 1; incr pc;
-        | PUSHACC2  -> push stack !accu; accu := acc stack 2; incr pc;
-        | PUSHACC3  -> push stack !accu; accu := acc stack 3; incr pc;
-        | PUSHACC4  -> push stack !accu; accu := acc stack 4; incr pc;
-        | PUSHACC5  -> push stack !accu; accu := acc stack 5; incr pc;
-        | PUSHACC6  -> push stack !accu; accu := acc stack 6; incr pc;
-        | PUSHACC7  -> push stack !accu; accu := acc stack 7; incr pc;
-        | PUSHACC n -> push stack !accu; accu := acc stack n; incr pc;
-        | POP n -> popn stack n; incr pc;
-        | ASSIGN n -> assign stack n !accu; accu := unit; incr pc;
-        | ENVACC1  -> accu := envacc !env 1; incr pc;
-        | ENVACC2  -> accu := envacc !env 2; incr pc;
-        | ENVACC3  -> accu := envacc !env 3; incr pc;
-        | ENVACC4  -> accu := envacc !env 4; incr pc;
-        | ENVACC n -> accu := envacc !env n; incr pc;
-        | PUSHENVACC1  -> push stack !accu; accu := envacc !env 1; incr pc;
-        | PUSHENVACC2  -> push stack !accu; accu := envacc !env 2; incr pc;
-        | PUSHENVACC3  -> push stack !accu; accu := envacc !env 3; incr pc;
-        | PUSHENVACC4  -> push stack !accu; accu := envacc !env 4; incr pc;
-        | PUSHENVACC n -> push stack !accu; accu := envacc !env n; incr pc;
-        | PUSH_RETADDR ptr ->
-          push stack (repr !extra_args);
-          push stack (repr !env);
-          push stack (repr ptr);
+        | Instr.ACC0  -> accu := Astack.acc stack 0; incr pc;
+        | Instr.ACC1  -> accu := Astack.acc stack 1; incr pc;
+        | Instr.ACC2  -> accu := Astack.acc stack 2; incr pc;
+        | Instr.ACC3  -> accu := Astack.acc stack 3; incr pc;
+        | Instr.ACC4  -> accu := Astack.acc stack 4; incr pc;
+        | Instr.ACC5  -> accu := Astack.acc stack 5; incr pc;
+        | Instr.ACC6  -> accu := Astack.acc stack 6; incr pc;
+        | Instr.ACC7  -> accu := Astack.acc stack 7; incr pc;
+        | Instr.ACC n -> accu := Astack.acc stack n; incr pc;
+        | Instr.PUSH | Instr.PUSHACC0 -> Astack.push stack !accu; incr pc;
+        | Instr.PUSHACC1  -> Astack.push stack !accu; accu := Astack.acc stack 1; incr pc;
+        | Instr.PUSHACC2  -> Astack.push stack !accu; accu := Astack.acc stack 2; incr pc;
+        | Instr.PUSHACC3  -> Astack.push stack !accu; accu := Astack.acc stack 3; incr pc;
+        | Instr.PUSHACC4  -> Astack.push stack !accu; accu := Astack.acc stack 4; incr pc;
+        | Instr.PUSHACC5  -> Astack.push stack !accu; accu := Astack.acc stack 5; incr pc;
+        | Instr.PUSHACC6  -> Astack.push stack !accu; accu := Astack.acc stack 6; incr pc;
+        | Instr.PUSHACC7  -> Astack.push stack !accu; accu := Astack.acc stack 7; incr pc;
+        | Instr.PUSHACC n -> Astack.push stack !accu; accu := Astack.acc stack n; incr pc;
+        | Instr.POP n -> Astack.popn stack n; incr pc;
+        | Instr.ASSIGN n -> Astack.assign stack n !accu; accu := unit; incr pc;
+        | Instr.ENVACC1  -> accu := envacc !env 1; incr pc;
+        | Instr.ENVACC2  -> accu := envacc !env 2; incr pc;
+        | Instr.ENVACC3  -> accu := envacc !env 3; incr pc;
+        | Instr.ENVACC4  -> accu := envacc !env 4; incr pc;
+        | Instr.ENVACC n -> accu := envacc !env n; incr pc;
+        | Instr.PUSHENVACC1  -> Astack.push stack !accu; accu := envacc !env 1; incr pc;
+        | Instr.PUSHENVACC2  -> Astack.push stack !accu; accu := envacc !env 2; incr pc;
+        | Instr.PUSHENVACC3  -> Astack.push stack !accu; accu := envacc !env 3; incr pc;
+        | Instr.PUSHENVACC4  -> Astack.push stack !accu; accu := envacc !env 4; incr pc;
+        | Instr.PUSHENVACC n -> Astack.push stack !accu; accu := envacc !env n; incr pc;
+        | Instr.PUSH_RETADDR ptr ->
+          Astack.push stack (Obj.repr !extra_args);
+          Astack.push stack (Obj.repr !env);
+          Astack.push stack (Obj.repr ptr);
           incr pc;
-        | APPLY n ->
+        | Instr.APPLY n ->
           extra_args := n - 1;
           env := unbox_env !accu;
           pc := ptr_of_env !env;
-        | APPLY1 ->
-          let arg = pop stack in
-          push stack (repr !extra_args);
-          push stack (repr !env);
-          push stack (repr (!pc + 1));
-          push stack arg;
+        | Instr.APPLY1 ->
+          let arg = Astack.pop stack in
+          Astack.push stack (Obj.repr !extra_args);
+          Astack.push stack (Obj.repr !env);
+          Astack.push stack (Obj.repr (!pc + 1));
+          Astack.push stack arg;
           extra_args := 0;
           env := unbox_env !accu;
           pc := ptr_of_env !env;
-        | APPLY2 ->
-          let arg1 = pop stack in
-          let arg2 = pop stack in
-          push stack (repr !extra_args);
-          push stack (repr !env);
-          push stack (repr (!pc + 1));
-          push stack arg2;
-          push stack arg1;
+        | Instr.APPLY2 ->
+          let arg1 = Astack.pop stack in
+          let arg2 = Astack.pop stack in
+          Astack.push stack (Obj.repr !extra_args);
+          Astack.push stack (Obj.repr !env);
+          Astack.push stack (Obj.repr (!pc + 1));
+          Astack.push stack arg2;
+          Astack.push stack arg1;
           extra_args := 1;
           env := unbox_env !accu;
           pc := ptr_of_env !env;
-        | APPLY3 ->
-          let arg1 = pop stack in
-          let arg2 = pop stack in
-          let arg3 = pop stack in
-          push stack (repr !extra_args);
-          push stack (repr !env);
-          push stack (repr (!pc + 1));
-          push stack arg3;
-          push stack arg2;
-          push stack arg1;
+        | Instr.APPLY3 ->
+          let arg1 = Astack.pop stack in
+          let arg2 = Astack.pop stack in
+          let arg3 = Astack.pop stack in
+          Astack.push stack (Obj.repr !extra_args);
+          Astack.push stack (Obj.repr !env);
+          Astack.push stack (Obj.repr (!pc + 1));
+          Astack.push stack arg3;
+          Astack.push stack arg2;
+          Astack.push stack arg1;
           extra_args := 2;
           env := unbox_env !accu;
           pc := ptr_of_env !env;
-        | APPTERM (n, s) ->
+        | Instr.APPTERM (n, s) ->
           for i = 0 to n - 1 do
-            assign stack (s - i - 1) (acc stack (n - i - 1));
+            Astack.assign stack (s - i - 1) (Astack.acc stack (n - i - 1));
           done;
-          popn stack (s - n);
+          Astack.popn stack (s - n);
           extra_args := !extra_args + n - 1;
           env := unbox_env !accu;
           pc := ptr_of_env !env;
-        | APPTERM1 s ->
-          assign stack (s - 1) (acc stack 0);
-          popn stack (s - 1);
+        | Instr.APPTERM1 s ->
+          Astack.assign stack (s - 1) (Astack.acc stack 0);
+          Astack.popn stack (s - 1);
           env := unbox_env !accu;
           pc := ptr_of_env !env;
-        | APPTERM2 s ->
-          assign stack (s - 1) (acc stack 1);
-          assign stack (s - 2) (acc stack 0);
-          popn stack (s - 2);
+        | Instr.APPTERM2 s ->
+          Astack.assign stack (s - 1) (Astack.acc stack 1);
+          Astack.assign stack (s - 2) (Astack.acc stack 0);
+          Astack.popn stack (s - 2);
           incr extra_args;
           env := unbox_env !accu;
           pc := ptr_of_env !env;
-        | APPTERM3 s ->
-          assign stack (s - 1) (acc stack 2);
-          assign stack (s - 2) (acc stack 1);
-          assign stack (s - 3) (acc stack 0);
-          popn stack (s - 3);
+        | Instr.APPTERM3 s ->
+          Astack.assign stack (s - 1) (Astack.acc stack 2);
+          Astack.assign stack (s - 2) (Astack.acc stack 1);
+          Astack.assign stack (s - 3) (Astack.acc stack 0);
+          Astack.popn stack (s - 3);
           extra_args := !extra_args + 2;
           env := unbox_env !accu;
           pc := ptr_of_env !env;
-        | RETURN n ->
-          popn stack n;
+        | Instr.RETURN n ->
+          Astack.popn stack n;
           if !extra_args = 0 then (
-            pc         := (obj (pop stack) : int);
-            env        := (obj (pop stack) : env);
-            extra_args := (obj (pop stack) : int);
+            pc         := (Obj.obj (Astack.pop stack) : int);
+            env        := (Obj.obj (Astack.pop stack) : env);
+            extra_args := (Obj.obj (Astack.pop stack) : int);
           ) else (
             decr extra_args;
             env := unbox_env !accu;
             pc := ptr_of_env !env;
           )
-        | RESTART ->
+        | Instr.RESTART ->
           let blk = env_of_closure !env in
           let n = Array.length blk - 1 in
-          for i = n downto 1 do push stack blk.(i) done;
-          env := (obj blk.(0) : env);
+          for i = n downto 1 do Astack.push stack blk.(i) done;
+          env := (Obj.obj blk.(0) : env);
           extra_args := !extra_args + n;
           incr pc;
-        | GRAB n ->
+        | Instr.GRAB n ->
           if !extra_args >= n then (
             extra_args := !extra_args - n;
             incr pc;
           ) else (
-            let blk = Array.make (!extra_args + 2) (repr (unbox_env !accu)) in
-            for i = 1 to !extra_args + 1 do blk.(i) <- pop stack done;
+            let blk = Array.make (!extra_args + 2) (Obj.repr ()) in
+            blk.(0) <- Obj.repr !env;
+            for i = 1 to !extra_args + 1 do blk.(i) <- Astack.pop stack done;
             accu       := box_env (Closure (!pc - 1, blk));
-            pc         := (obj (pop stack) : int);
-            env        := (obj (pop stack) : env);
-            extra_args := (obj (pop stack) : int);
+            pc         := (Obj.obj (Astack.pop stack) : int);
+            env        := (Obj.obj (Astack.pop stack) : env);
+            extra_args := (Obj.obj (Astack.pop stack) : int);
           )
-        | CLOSURE (n, ptr) ->
-          let blk = Array.make n !accu in
-          for i = 1 to n - 1 do blk.(i) <- pop stack done;
+        | Instr.CLOSURE (n, ptr) ->
+          let blk = Array.make n (Obj.repr ()) in
+          if n > 0 then blk.(0) <- !accu;
+          for i = 1 to n - 1 do blk.(i) <- Astack.pop stack done;
           accu := box_env (Closure (ptr, blk));
           incr pc;
-        | CLOSUREREC (_f, v, o, t) ->
-          let blk = Array.make v !accu in
-          for i = 1 to v - 1 do blk.(i) <- pop stack done;
+        | Instr.CLOSUREREC (_f, v, o, t) ->
+          let blk = Array.make v (Obj.repr ()) in
+          if v > 0 then blk.(0) <- !accu;
+          for i = 1 to v - 1 do blk.(i) <- Astack.pop stack done;
           accu := box_env (Rec_closure (o, t, blk, 0));
-          push stack !accu;
+          Astack.push stack !accu;
           for i = 1 to Array.length t do
-            push stack (box_env (Rec_closure (o, t, blk, i)));
+            Astack.push stack (box_env (Rec_closure (o, t, blk, i)));
           done;
           incr pc;
-        | OFFSETCLOSUREM2 -> accu := box_env (offsetclosure !env (-2)); incr pc;
-        | OFFSETCLOSURE0  -> accu := box_env (offsetclosure !env 0); incr pc;
-        | OFFSETCLOSURE2  -> accu := box_env (offsetclosure !env 2); incr pc;
-        | OFFSETCLOSURE n -> accu := box_env (offsetclosure !env n); incr pc;
-        | PUSHOFFSETCLOSUREM2 ->
-          push stack !accu;
+        | Instr.OFFSETCLOSUREM2 -> accu := box_env (offsetclosure !env (-2)); incr pc;
+        | Instr.OFFSETCLOSURE0  -> accu := box_env (offsetclosure !env 0); incr pc;
+        | Instr.OFFSETCLOSURE2  -> accu := box_env (offsetclosure !env 2); incr pc;
+        | Instr.OFFSETCLOSURE n -> accu := box_env (offsetclosure !env n); incr pc;
+        | Instr.PUSHOFFSETCLOSUREM2 ->
+          Astack.push stack !accu;
           accu := box_env (offsetclosure !env (-2));
           incr pc;
-        | PUSHOFFSETCLOSURE0 ->
-          push stack !accu;
+        | Instr.PUSHOFFSETCLOSURE0 ->
+          Astack.push stack !accu;
           accu := box_env (offsetclosure !env 0);
           incr pc;
-        | PUSHOFFSETCLOSURE2 ->
-          push stack !accu;
+        | Instr.PUSHOFFSETCLOSURE2 ->
+          Astack.push stack !accu;
           accu := box_env (offsetclosure !env 2);
           incr pc;
-        | PUSHOFFSETCLOSURE n ->
-          push stack !accu;
+        | Instr.PUSHOFFSETCLOSURE n ->
+          Astack.push stack !accu;
           accu := box_env (offsetclosure !env n);
           incr pc;
-        | GETGLOBAL n -> accu := globals.(n); incr pc;
-        | PUSHGETGLOBAL n -> push stack !accu; accu := globals.(n); incr pc;
-        | GETGLOBALFIELD (n, p) -> accu := field globals.(n) p; incr pc;
-        | PUSHGETGLOBALFIELD (n, p) ->
-          push stack !accu;
-          accu := field globals.(n) p;
+        | Instr.GETGLOBAL n -> accu := globals.(n); incr pc;
+        | Instr.PUSHGETGLOBAL n -> Astack.push stack !accu; accu := globals.(n); incr pc;
+        | Instr.GETGLOBALFIELD (n, p) -> accu := Obj.field globals.(n) p; incr pc;
+        | Instr.PUSHGETGLOBALFIELD (n, p) ->
+          Astack.push stack !accu;
+          accu := Obj.field globals.(n) p;
           incr pc;
-        | SETGLOBAL n -> globals.(n) <- !accu; accu := unit; incr pc;
-        | ATOM0        -> accu := new_block 0 0; incr pc;
-        | ATOM tag     -> accu := new_block tag 0; incr pc;
-        | PUSHATOM0    -> push stack !accu; accu := new_block 0 0; incr pc;
-        | PUSHATOM tag -> push stack !accu; accu := new_block tag 0; incr pc;
-        | MAKEBLOCK (tag, sz) ->
-          let blk = new_block tag sz in
-          set_field blk 0 !accu;
-          for i = 1 to sz - 1 do set_field blk i (pop stack) done;
+        | Instr.SETGLOBAL n -> globals.(n) <- !accu; accu := unit; incr pc;
+        | Instr.ATOM0        -> accu := Obj.new_block 0 0; incr pc;
+        | Instr.ATOM tag     -> accu := Obj.new_block tag 0; incr pc;
+        | Instr.PUSHATOM0    -> Astack.push stack !accu; accu := Obj.new_block 0 0; incr pc;
+        | Instr.PUSHATOM tag -> Astack.push stack !accu; accu := Obj.new_block tag 0; incr pc;
+        | Instr.MAKEBLOCK (tag, sz) ->
+          let blk = Obj.new_block tag sz in
+          Obj.set_field blk 0 !accu;
+          for i = 1 to sz - 1 do Obj.set_field blk i (Astack.pop stack) done;
           accu := blk;
           incr pc;
-        | MAKEBLOCK1 tag ->
-          let blk = new_block tag 1 in
-          set_field blk 0 !accu;
+        | Instr.MAKEBLOCK1 tag ->
+          let blk = Obj.new_block tag 1 in
+          Obj.set_field blk 0 !accu;
           accu := blk;
           incr pc;
-        | MAKEBLOCK2 tag ->
-          let blk = new_block tag 2 in
-          set_field blk 0 !accu;
-          set_field blk 1 (pop stack);
+        | Instr.MAKEBLOCK2 tag ->
+          let blk = Obj.new_block tag 2 in
+          Obj.set_field blk 0 !accu;
+          Obj.set_field blk 1 (Astack.pop stack);
           accu := blk;
           incr pc;
-        | MAKEBLOCK3 tag ->
-          let blk = new_block tag 3 in
-          set_field blk 0 !accu;
-          set_field blk 1 (pop stack);
-          set_field blk 2 (pop stack);
+        | Instr.MAKEBLOCK3 tag ->
+          let blk = Obj.new_block tag 3 in
+          Obj.set_field blk 0 !accu;
+          Obj.set_field blk 1 (Astack.pop stack);
+          Obj.set_field blk 2 (Astack.pop stack);
           accu := blk;
           incr pc;
-        | MAKEFLOATBLOCK sz ->
-          let blk = new_block double_array_tag sz in
-          set_double_field blk 0 (obj !accu : float);
+        | Instr.MAKEFLOATBLOCK sz ->
+          let blk = Obj.new_block Obj.double_array_tag sz in
+          Obj.set_double_field blk 0 (Obj.obj !accu : float);
           for i = 1 to sz - 1 do
-            set_double_field blk i (obj (pop stack) : float);
+            Obj.set_double_field blk i (Obj.obj (Astack.pop stack) : float);
           done;
           accu := blk;
           incr pc;
-        | GETFIELD0  -> accu := field !accu 0; incr pc;
-        | GETFIELD1  -> accu := field !accu 1; incr pc;
-        | GETFIELD2  -> accu := field !accu 2; incr pc;
-        | GETFIELD3  -> accu := field !accu 3; incr pc;
-        | GETFIELD n -> accu := field !accu n; incr pc;
-        | GETFLOATFIELD ind -> accu := repr (double_field !accu ind); incr pc;
-        | SETFIELD0  -> set_field !accu 0 (pop stack); accu := unit; incr pc;
-        | SETFIELD1  -> set_field !accu 1 (pop stack); accu := unit; incr pc;
-        | SETFIELD2  -> set_field !accu 2 (pop stack); accu := unit; incr pc;
-        | SETFIELD3  -> set_field !accu 3 (pop stack); accu := unit; incr pc;
-        | SETFIELD n -> set_field !accu n (pop stack); accu := unit; incr pc;
-        | SETFLOATFIELD ind ->
-          set_double_field !accu ind (obj (pop stack) : float);
+        | Instr.GETFIELD0  -> accu := Obj.field !accu 0; incr pc;
+        | Instr.GETFIELD1  -> accu := Obj.field !accu 1; incr pc;
+        | Instr.GETFIELD2  -> accu := Obj.field !accu 2; incr pc;
+        | Instr.GETFIELD3  -> accu := Obj.field !accu 3; incr pc;
+        | Instr.GETFIELD n -> accu := Obj.field !accu n; incr pc;
+        | Instr.GETFLOATFIELD ind -> accu := Obj.repr (Obj.double_field !accu ind); incr pc;
+        | Instr.SETFIELD0  -> Obj.set_field !accu 0 (Astack.pop stack); accu := unit; incr pc;
+        | Instr.SETFIELD1  -> Obj.set_field !accu 1 (Astack.pop stack); accu := unit; incr pc;
+        | Instr.SETFIELD2  -> Obj.set_field !accu 2 (Astack.pop stack); accu := unit; incr pc;
+        | Instr.SETFIELD3  -> Obj.set_field !accu 3 (Astack.pop stack); accu := unit; incr pc;
+        | Instr.SETFIELD n -> Obj.set_field !accu n (Astack.pop stack); accu := unit; incr pc;
+        | Instr.SETFLOATFIELD ind ->
+          Obj.set_double_field !accu ind (Obj.obj (Astack.pop stack) : float);
           accu := unit;
           incr pc;
-        | VECTLENGTH ->
-          accu := repr (size !accu);
+        | Instr.VECTLENGTH ->
+          accu := Obj.repr (Obj.size !accu);
           incr pc;
-        | GETVECTITEM ->
-          accu := field !accu (obj (pop stack) : int);
+        | Instr.GETVECTITEM ->
+          accu := Obj.field !accu (Obj.obj (Astack.pop stack) : int);
           incr pc;
-        | SETVECTITEM ->
-          let i = pop stack in
-          let v = pop stack in
-          set_field !accu (obj i : int) v;
+        | Instr.SETVECTITEM ->
+          let i = Astack.pop stack in
+          let v = Astack.pop stack in
+          Obj.set_field !accu (Obj.obj i : int) v;
           accu := unit;
           incr pc;
-        | GETBYTESCHAR | GETSTRINGCHAR ->
-          accu := repr (Bytes.get (obj !accu : bytes) (obj (pop stack) : int));
+        | Instr.GETBYTESCHAR | Instr.GETSTRINGCHAR ->
+          accu := Obj.repr (Bytes.get (Obj.obj !accu : bytes) (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | SETBYTESCHAR ->
-          let i = pop stack in
-          let c = pop stack in
-          Bytes.set (obj !accu : bytes) (obj i : int) (obj c : char);
+        | Instr.SETBYTESCHAR ->
+          let i = Astack.pop stack in
+          let c = Astack.pop stack in
+          Bytes.set (Obj.obj !accu : bytes) (Obj.obj i : int) (Obj.obj c : char);
           accu := unit;
           incr pc;
-        | BRANCH ptr ->
+        | Instr.BRANCH ptr ->
           pc := ptr;
-        | BRANCHIF ptr ->
-          if !accu != repr false then pc := ptr else incr pc;
-        | BRANCHIFNOT ptr ->
-          if !accu == repr false then pc := ptr else incr pc;
-        | SWITCH (n, ptrs) ->
-          if is_int !accu then pc := ptrs.((obj !accu : int))
-          else pc := ptrs.(tag !accu + (n land 0xFFFF))
-        | BOOLNOT ->
-          accu := repr (not (obj !accu : bool));
+        | Instr.BRANCHIF ptr ->
+          if !accu != Obj.repr false then pc := ptr else incr pc;
+        | Instr.BRANCHIFNOT ptr ->
+          if !accu == Obj.repr false then pc := ptr else incr pc;
+        | Instr.SWITCH (n, ptrs) ->
+          if Obj.is_int !accu then pc := ptrs.((Obj.obj !accu : int))
+          else pc := ptrs.(Obj.tag !accu + (n land 0xFFFF))
+        | Instr.BOOLNOT ->
+          accu := Obj.repr (not (Obj.obj !accu : bool));
           incr pc;
-        | PUSHTRAP ptr ->
-          push stack (repr !extra_args);
-          push stack (repr !env);
-          push stack (repr !trap_sp);
-          push stack (repr ptr);
+        | Instr.PUSHTRAP ptr ->
+          Astack.push stack (Obj.repr !extra_args);
+          Astack.push stack (Obj.repr !env);
+          Astack.push stack (Obj.repr !trap_sp);
+          Astack.push stack (Obj.repr ptr);
           trap_sp := Astack.size stack;
           incr pc;
-        | POPTRAP ->
-          trap_sp := (obj (acc stack 1) : int);
-          popn stack 4;
+        | Instr.POPTRAP ->
+          trap_sp := (Obj.obj (Astack.acc stack 1) : int);
+          Astack.popn stack 4;
           incr pc;
-        | RAISE | RERAISE | RAISE_NOTRACE ->
-          raise (obj !accu : exn);
-        | CHECK_SIGNALS ->
+        | Instr.RAISE | Instr.RERAISE | Instr.RAISE_NOTRACE ->
+          raise (Obj.obj !accu : exn);
+        | Instr.CHECK_SIGNALS ->
           incr pc;
-        | C_CALL1 idx ->
-          accu := (obj cfuns.(idx) : t -> t) !accu;
+        | Instr.C_CALL1 idx ->
+          accu := (Obj.obj cfuns.(idx) : Obj.t -> Obj.t) !accu;
           incr pc;
-        | C_CALL2 idx ->
-          accu := (obj cfuns.(idx) : t -> t -> t) !accu (pop stack);
+        | Instr.C_CALL2 idx ->
+          accu := (Obj.obj cfuns.(idx) : Obj.t -> Obj.t -> Obj.t) !accu (Astack.pop stack);
           incr pc;
-        | C_CALL3 idx ->
-          accu := (obj cfuns.(idx) : t -> t -> t -> t)
-            !accu (acc stack 0) (acc stack 1);
-          popn stack 2;
+        | Instr.C_CALL3 idx ->
+          accu := (Obj.obj cfuns.(idx) : Obj.t -> Obj.t -> Obj.t -> Obj.t)
+            !accu (Astack.acc stack 0) (Astack.acc stack 1);
+          Astack.popn stack 2;
           incr pc;
-        | C_CALL4 idx ->
-          accu := (obj cfuns.(idx) : t -> t -> t -> t -> t)
-            !accu (acc stack 0) (acc stack 1) (acc stack 2);
-          popn stack 3;
+        | Instr.C_CALL4 idx ->
+          accu := (Obj.obj cfuns.(idx) : Obj.t -> Obj.t -> Obj.t -> Obj.t -> Obj.t)
+            !accu (Astack.acc stack 0) (Astack.acc stack 1) (Astack.acc stack 2);
+          Astack.popn stack 3;
           incr pc;
-        | C_CALL5 idx ->
-          accu := (obj cfuns.(idx) : t -> t -> t -> t -> t -> t)
-            !accu (acc stack 0) (acc stack 1) (acc stack 2) (acc stack 3);
-          popn stack 4;
+        | Instr.C_CALL5 idx ->
+          accu := (Obj.obj cfuns.(idx) : Obj.t -> Obj.t -> Obj.t -> Obj.t -> Obj.t -> Obj.t)
+            !accu (Astack.acc stack 0) (Astack.acc stack 1) (Astack.acc stack 2) (Astack.acc stack 3);
+          Astack.popn stack 4;
           incr pc;
-        | C_CALLN (narg, idx) ->
+        | Instr.C_CALLN (narg, idx) ->
           accu := Prim.apply narg cfuns.(idx) !accu stack;
-          popn stack (narg - 1);
+          Astack.popn stack (narg - 1);
           incr pc;
-        | CONST0     -> accu := repr 0; incr pc;
-        | CONST1     -> accu := repr 1; incr pc;
-        | CONST2     -> accu := repr 2; incr pc;
-        | CONST3     -> accu := repr 3; incr pc;
-        | CONSTINT n -> accu := repr n; incr pc;
-        | PUSHCONST0     -> push stack !accu; accu := repr 0; incr pc;
-        | PUSHCONST1     -> push stack !accu; accu := repr 1; incr pc;
-        | PUSHCONST2     -> push stack !accu; accu := repr 2; incr pc;
-        | PUSHCONST3     -> push stack !accu; accu := repr 3; incr pc;
-        | PUSHCONSTINT n -> push stack !accu; accu := repr n; incr pc;
-        | NEGINT ->
-          accu := repr (-(obj !accu : int));
+        | Instr.CONST0     -> accu := Obj.repr 0; incr pc;
+        | Instr.CONST1     -> accu := Obj.repr 1; incr pc;
+        | Instr.CONST2     -> accu := Obj.repr 2; incr pc;
+        | Instr.CONST3     -> accu := Obj.repr 3; incr pc;
+        | Instr.CONSTINT n -> accu := Obj.repr n; incr pc;
+        | Instr.PUSHCONST0     -> Astack.push stack !accu; accu := Obj.repr 0; incr pc;
+        | Instr.PUSHCONST1     -> Astack.push stack !accu; accu := Obj.repr 1; incr pc;
+        | Instr.PUSHCONST2     -> Astack.push stack !accu; accu := Obj.repr 2; incr pc;
+        | Instr.PUSHCONST3     -> Astack.push stack !accu; accu := Obj.repr 3; incr pc;
+        | Instr.PUSHCONSTINT n -> Astack.push stack !accu; accu := Obj.repr n; incr pc;
+        | Instr.NEGINT ->
+          accu := Obj.repr (-(Obj.obj !accu : int));
           incr pc;
-        | ADDINT ->
-          accu := repr ((obj !accu : int) + (obj (pop stack) : int));
+        | Instr.ADDINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) + (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | SUBINT ->
-          accu := repr ((obj !accu : int) - (obj (pop stack) : int));
+        | Instr.SUBINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) - (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | MULINT ->
-          accu := repr ((obj !accu : int) * (obj (pop stack) : int));
+        | Instr.MULINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) * (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | DIVINT ->
-          accu := repr ((obj !accu : int) / (obj (pop stack) : int));
+        | Instr.DIVINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) / (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | MODINT ->
-          accu := repr ((obj !accu : int) mod (obj (pop stack) : int));
+        | Instr.MODINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) mod (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | ANDINT ->
-          accu := repr ((obj !accu : int) land (obj (pop stack) : int));
+        | Instr.ANDINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) land (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | ORINT ->
-          accu := repr ((obj !accu : int) lor (obj (pop stack) : int));
+        | Instr.ORINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) lor (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | XORINT ->
-          accu := repr ((obj !accu : int) lxor (obj (pop stack) : int));
+        | Instr.XORINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) lxor (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | LSLINT ->
-          accu := repr ((obj !accu : int) lsl (obj (pop stack) : int));
+        | Instr.LSLINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) lsl (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | LSRINT ->
-          accu := repr ((obj !accu : int) lsr (obj (pop stack) : int));
+        | Instr.LSRINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) lsr (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | ASRINT ->
-          accu := repr ((obj !accu : int) asr (obj (pop stack) : int));
+        | Instr.ASRINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) asr (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | EQ ->
-          accu := repr (!accu == pop stack);
+        | Instr.EQ ->
+          accu := Obj.repr (!accu == Astack.pop stack);
           incr pc;
-        | NEQ ->
-          accu := repr (!accu != pop stack);
+        | Instr.NEQ ->
+          accu := Obj.repr (!accu != Astack.pop stack);
           incr pc;
-        | LTINT ->
-          accu := repr ((obj !accu : int) < (obj (pop stack) : int));
+        | Instr.LTINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) < (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | LEINT ->
-          accu := repr ((obj !accu : int) <= (obj (pop stack) : int));
+        | Instr.LEINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) <= (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | GTINT ->
-          accu := repr ((obj !accu : int) > (obj (pop stack) : int));
+        | Instr.GTINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) > (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | GEINT ->
-          accu := repr ((obj !accu : int) >= (obj (pop stack) : int));
+        | Instr.GEINT ->
+          accu := Obj.repr ((Obj.obj !accu : int) >= (Obj.obj (Astack.pop stack) : int));
           incr pc;
-        | OFFSETINT ofs ->
-          accu := repr ((obj !accu : int) + ofs);
+        | Instr.OFFSETINT ofs ->
+          accu := Obj.repr ((Obj.obj !accu : int) + ofs);
           incr pc;
-        | OFFSETREF ofs ->
-          let r = (obj !accu : int ref) in
+        | Instr.OFFSETREF ofs ->
+          let r = (Obj.obj !accu : int ref) in
           r := !r + ofs;
           accu := unit;
           incr pc;
-        | ISINT ->
-          accu := repr (is_int !accu);
+        | Instr.ISINT ->
+          accu := Obj.repr (Obj.is_int !accu);
           incr pc;
-        | GETMETHOD ->
-          accu := field (field (acc stack 0) 0) (obj !accu : int);
+        | Instr.GETMETHOD ->
+          accu := Obj.field (Obj.field (Astack.acc stack 0) 0) (Obj.obj !accu : int);
           incr pc;
-        | BEQ (n, ptr) ->
-          if n == (obj !accu : int) then pc := ptr else incr pc;
-        | BNEQ (n, ptr) ->
-          if n != (obj !accu : int) then pc := ptr else incr pc;
-        | BLTINT (n, ptr) ->
-          if n < (obj !accu : int) then pc := ptr else incr pc;
-        | BLEINT (n, ptr) ->
-          if n <= (obj !accu : int) then pc := ptr else incr pc;
-        | BGTINT (n, ptr) ->
-          if n > (obj !accu : int) then pc := ptr else incr pc;
-        | BGEINT (n, ptr) ->
-          if n >= (obj !accu : int) then pc := ptr else incr pc;
-        | ULTINT ->
-          let n = (obj !accu : int) + min_int
-          and p = (obj (pop stack) : int) + min_int in
-          accu := repr (n < p);
+        | Instr.BEQ (n, ptr) ->
+          if n == (Obj.obj !accu : int) then pc := ptr else incr pc;
+        | Instr.BNEQ (n, ptr) ->
+          if n != (Obj.obj !accu : int) then pc := ptr else incr pc;
+        | Instr.BLTINT (n, ptr) ->
+          if n < (Obj.obj !accu : int) then pc := ptr else incr pc;
+        | Instr.BLEINT (n, ptr) ->
+          if n <= (Obj.obj !accu : int) then pc := ptr else incr pc;
+        | Instr.BGTINT (n, ptr) ->
+          if n > (Obj.obj !accu : int) then pc := ptr else incr pc;
+        | Instr.BGEINT (n, ptr) ->
+          if n >= (Obj.obj !accu : int) then pc := ptr else incr pc;
+        | Instr.ULTINT ->
+          let n = (Obj.obj !accu : int) + min_int
+          and p = (Obj.obj (Astack.pop stack) : int) + min_int in
+          accu := Obj.repr (n < p);
           incr pc;
-        | UGEINT ->
-          let n = (obj !accu : int) + min_int
-          and p = (obj (pop stack) : int) + min_int in
-          accu := repr (n >= p);
+        | Instr.UGEINT ->
+          let n = (Obj.obj !accu : int) + min_int
+          and p = (Obj.obj (Astack.pop stack) : int) + min_int in
+          accu := Obj.repr (n >= p);
           incr pc;
-        | BULTINT (n, ptr) ->
-          if n + min_int < (obj !accu : int) + min_int
+        | Instr.BULTINT (n, ptr) ->
+          if n + min_int < (Obj.obj !accu : int) + min_int
           then pc := ptr else incr pc;
-        | BUGEINT (n, ptr) ->
-          if n + min_int >= (obj !accu : int) + min_int
+        | Instr.BUGEINT (n, ptr) ->
+          if n + min_int >= (Obj.obj !accu : int) + min_int
           then pc := ptr else incr pc;
-        | GETPUBMET (tag, _cache) ->
-          push stack !accu;
+        | Instr.GETPUBMET (tag, _cache) ->
+          Astack.push stack !accu;
           accu := find_object_method !accu tag;
           incr pc;
-        | GETDYNMET ->
-          accu := find_object_method (acc stack 0) (obj !accu : int);
+        | Instr.GETDYNMET ->
+          accu := find_object_method (Astack.acc stack 0) (Obj.obj !accu : int);
           incr pc;
-        | STOP  -> raise Stop
-        | EVENT -> eval_error "unexpected instruction EVENT"
-        | BREAK -> eval_error "unexpected instruction BREAK"
+        | Instr.STOP  -> raise Stop
+        | Instr.EVENT -> eval_error "unexpected instruction EVENT"
+        | Instr.BREAK -> eval_error "unexpected instruction BREAK"
       done with
       | (Stop | Eval_error _) as exn -> raise exn
       | exn  ->
         if !trap_sp = -1 then raise exn;
         let ofs = Astack.size stack - !trap_sp in
-        popn stack ofs;
-        pc         := (obj (pop stack) : int);
-        trap_sp    := (obj (pop stack) : int);
-        env        := (obj (pop stack) : env);
-        extra_args := (obj (pop stack) : int);
-        accu       := (repr exn);
+        Astack.popn stack ofs;
+        pc         := (Obj.obj (Astack.pop stack) : int);
+        trap_sp    := (Obj.obj (Astack.pop stack) : int);
+        env        := (Obj.obj (Astack.pop stack) : env);
+        extra_args := (Obj.obj (Astack.pop stack) : int);
+        accu       := (Obj.repr exn);
     done with
       | Stop -> ()
       | Eval_error msg -> fail "%s" msg in
-  run 0 No_closure (ref unit))))
+  run 0 No_closure (ref unit)
 
 let make_cfun_map code prim =
   let prim_nb = Array.length prim in

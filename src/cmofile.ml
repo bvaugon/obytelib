@@ -31,8 +31,8 @@ type structured_constant =
 
 type reloc_info =
 | Reloc_literal   of structured_constant  (* structured constant    *)
-| Reloc_getglobal of Symb.ident           (* reference to a global  *)
-| Reloc_setglobal of Symb.ident           (* definition of a global *)
+| Reloc_getglobal of Ident.t              (* reference to a global  *)
+| Reloc_setglobal of Ident.t              (* definition of a global *)
 | Reloc_primitive of string               (* C primitive number     *)
     
 type compilation_unit = {
@@ -41,7 +41,7 @@ type compilation_unit = {
   cu_codesize           : int;                             (* Size of code block                                                              *)
   cu_reloc              : (reloc_info * int) list;         (* Relocation information                                                          *)
   cu_imports            : (string * Digest.t option) list; (* Names and CRC of intfs imported                                                 *)
-  cu_required_globals   : Symb.ident list;                 (* Compilation units whose initialization side effects must occur before this one. *)
+  cu_required_globals   : Ident.t list;                    (* Compilation units whose initialization side effects must occur before this one. *)
   cu_primitives         : string list;                     (* Primitives declared inside                                                      *)
   mutable cu_force_link : bool;                            (* Must be linked even if unref'ed                                                 *)
   mutable cu_debug      : int;                             (* Position of debugging info, or 0                                                *)
@@ -80,8 +80,8 @@ end = struct
 
     type reloc_info =
     | Reloc_literal   of structured_constant  (* structured constant    *)
-    | Reloc_getglobal of Symb.ident           (* reference to a global  *)
-    | Reloc_setglobal of Symb.ident           (* definition of a global *)
+    | Reloc_getglobal of Ident.t              (* reference to a global  *)
+    | Reloc_setglobal of Ident.t              (* definition of a global *)
     | Reloc_primitive of string               (* C primitive number     *)
     
     type compilation_unit = {
@@ -94,7 +94,7 @@ end = struct
       mutable cu_force_link : bool;                            (* Must be linked even if unref'ed  *)
       mutable cu_debug      : int;                             (* Position of debugging info, or 0 *)
       cu_debugsize          : int;                             (* Length of debugging info         *)
-    }
+    } [@@warning "-69"]
   end
 
   type compilation_unit_v008 = T.compilation_unit
@@ -198,7 +198,7 @@ end = struct
       mutable cu_force_link : bool;                            (* Must be linked even if unref'ed  *)
       mutable cu_debug      : int;                             (* Position of debugging info, or 0 *)
       cu_debugsize          : int;                             (* Length of debugging info         *)
-    }
+    } [@@warning "-69"]
   end
 
   type compilation_unit_v010 = T.compilation_unit
@@ -229,7 +229,15 @@ let version_of_magic str =
   | "Caml1999O008" -> Some Version.V008
   | "Caml1999O010" -> Some Version.V010
   | "Caml1999O011" -> Some Version.V011
+  | "Caml1999O022" -> Some Version.V022
   | "Caml1999O023" -> Some Version.V023
+  | "Caml1999O025" -> Some Version.V025
+  | "Caml1999O026" -> Some Version.V026
+  | "Caml1999O027" -> Some Version.V027
+  | "Caml1999O028" -> Some Version.V028
+  | "Caml1999O029" -> Some Version.V029
+  | "Caml1999O030" -> Some Version.V030
+  | "Caml1999O031" -> Some Version.V031
   | _ -> None
 
 let magic_of_version v =
@@ -237,7 +245,15 @@ let magic_of_version v =
   | Version.V008 -> "Caml1999O008"
   | Version.V010 -> "Caml1999O010"
   | Version.V011 -> "Caml1999O011"
+  | Version.V022 -> "Caml1999O022"
   | Version.V023 -> "Caml1999O023"
+  | Version.V025 -> "Caml1999O025"
+  | Version.V026 -> "Caml1999O026"
+  | Version.V027 -> "Caml1999O027"
+  | Version.V028 -> "Caml1999O028"
+  | Version.V029 -> "Caml1999O029"
+  | Version.V030 -> "Caml1999O030"
+  | Version.V031 -> "Caml1999O031"
 
 let magic_len = String.length (magic_of_version Version.V008)
 
@@ -285,10 +301,10 @@ let reloc cmo =
       incr data_ind;
     | Reloc_getglobal id | Reloc_setglobal id ->
       let ind =
-        try Hashtbl.find idents id.Symb.name
+        try Hashtbl.find idents (Ident.name id)
         with Not_found ->
           let ind = !data_ind in
-          Hashtbl.add idents id.Symb.name ind;
+          Hashtbl.add idents (Ident.name id) ind;
           incr data_ind;
           ind in
       Hashtbl.add globals (pos / 4) (id, ind);
@@ -388,8 +404,8 @@ let print =
   let print_reloc_info oc ri =
     match ri with
     | Reloc_literal sc   -> fprintf oc "Reloc_literal (%a)" print_structured_constant sc
-    | Reloc_getglobal id -> fprintf oc "Reloc_getglobal %a" Symb.print_ident id
-    | Reloc_setglobal id -> fprintf oc "Reloc_setglobal %a" Symb.print_ident id
+    | Reloc_getglobal id -> fprintf oc "Reloc_getglobal (%a)" Ident.print id
+    | Reloc_setglobal id -> fprintf oc "Reloc_setglobal (%a)" Ident.print id
     | Reloc_primitive s  -> fprintf oc "Reloc_primitive %S" s in
 
   let print_compilation_unit oc {
@@ -418,7 +434,7 @@ let print =
     | None -> "None"
     | Some d -> "Some \"" ^ Digest.to_hex d ^ "\""))
   ) cu_imports
-  (print_vlist 2 Symb.print_ident) cu_required_globals
+  (print_vlist 2 Ident.print) cu_required_globals
   (print_vlist 2 (fun oc s -> fprintf oc "%S" s)) cu_primitives
   cu_force_link
   cu_debug
@@ -456,10 +472,14 @@ let read file_name =
     seek_in ic compunit_pos;
     let unit =
       match version with
-      | Version.V008 -> Legacy_V008.export (input_value ic : Legacy_V008.compilation_unit_v008)
-      | Version.V010 -> Legacy_V010.export (input_value ic : Legacy_V010.compilation_unit_v010)
-      | Version.V011 -> (input_value ic : compilation_unit)
-      | Version.V023 -> (input_value ic : compilation_unit) in
+      | Version.V008 ->
+        Legacy_V008.export (input_value ic : Legacy_V008.compilation_unit_v008)
+      | Version.V010 ->
+        Legacy_V010.export (input_value ic : Legacy_V010.compilation_unit_v010)
+      | Version.V011 | Version.V022 | Version.V023 | Version.V025 
+      | Version.V026 | Version.V027 | Version.V028 | Version.V029 
+      | Version.V030 | Version.V031 ->
+        (input_value ic : compilation_unit) in
     let index = [ { Index.section = Section.CODE; offset = unit.cu_pos; length = unit.cu_codesize } ] in
     let code = Code.read version index ic in
     close_in ic;
@@ -488,10 +508,14 @@ let write file_name { version; unit; code } =
   } in
   let marshaled_unit =
     match version with
-    | Version.V008 -> Marshal.to_string (Legacy_V008.import unit) []
-    | Version.V010 -> Marshal.to_string (Legacy_V010.import unit) []
-    | Version.V011 -> Marshal.to_string unit []
-    | Version.V023 -> Marshal.to_string unit [] in
+    | Version.V008 ->
+      Marshal.to_string (Legacy_V008.import unit) []
+    | Version.V010 ->
+      Marshal.to_string (Legacy_V010.import unit) []
+    | Version.V011 | Version.V022 | Version.V023 | Version.V025
+    | Version.V026 | Version.V027 | Version.V028 | Version.V029
+    | Version.V030 | Version.V031 ->
+      Marshal.to_string unit [] in
   let oc =
     try open_out file_name
     with _ -> fail "fail to open file %S for writting" file_name in
