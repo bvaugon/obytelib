@@ -16,7 +16,7 @@
 (** Tool to mangage bytecode file versions *)
 module Version : sig
   (** Bytecode versions corresponding to magic strings:
-      "Caml1999X008", "Caml1999X010", ..., "Caml1999X029" *)
+      "Caml1999X008", "Caml1999X010", ..., "Caml1999X031" *)
   type t = V008 | V010 | V011 | V022 | V023 | V025 | V026 | V027 | V028 | V029 | V030 | V031
 
   (** Conversion from version to pretty string *)

@@ -15,10 +15,10 @@ type legacy =
   { stamp: int; name: string; mutable flags: int }
               
 type recent =
-  | Local  of { name: string; stamp: int }
-  | Scoped of { name: string; stamp: int; scope: int }
+  | Local  of string * int       (* { name: string; stamp: int } *)
+  | Scoped of string * int * int (* { name: string; stamp: int; scope: int } *)
   | Global of string
-  | Predef of { name: string; stamp: int }
+  | Predef of string * int       (* { name: string; stamp: int } *)
 [@@warning "-37"]
 
 type generic =
@@ -78,21 +78,21 @@ let coerce (ident : t) : generic =
 
 let print oc ident =
   match coerce ident with
-  | Legacy { stamp; name; flags }          -> Printf.fprintf oc "{ stamp = %d; name = %S; flags = %d }" stamp name flags
-  | Recent (Local  { name; stamp })        -> Printf.fprintf oc "Local { name = %S; stmp = %d }" name stamp
-  | Recent (Scoped { name; stamp; scope }) -> Printf.fprintf oc "Scoped { name = %S; stamp = %d; scope = %d }" name stamp scope
-  | Recent (Global name)                   -> Printf.fprintf oc "Global %S" name
-  | Recent (Predef { name; stamp })        -> Printf.fprintf oc "Predef { name = %S; stamp = %d }" name stamp
+  | Legacy { stamp; name; flags }        -> Printf.fprintf oc "{ stamp = %d; name = %S; flags = %d }" stamp name flags
+  | Recent (Local  (name, stamp))        -> Printf.fprintf oc "Local { name = %S; stmp = %d }" name stamp
+  | Recent (Scoped (name, stamp, scope)) -> Printf.fprintf oc "Scoped { name = %S; stamp = %d; scope = %d }" name stamp scope
+  | Recent (Global name)                 -> Printf.fprintf oc "Global %S" name
+  | Recent (Predef (name, stamp))        -> Printf.fprintf oc "Predef { name = %S; stamp = %d }" name stamp
 
 (***)
 
 let name ident =
   match coerce ident with
-  | Legacy { name; _ }          -> name
-  | Recent (Local { name; _ })  -> name
-  | Recent (Scoped { name; _ }) -> name
-  | Recent (Global name)        -> name
-  | Recent (Predef { name; _ }) -> name
+  | Legacy { name; _ }           -> name
+  | Recent (Local (name, _))     -> name
+  | Recent (Scoped (name, _, _)) -> name
+  | Recent (Global name)         -> name
+  | Recent (Predef (name, _))    -> name
 
 (***)
 

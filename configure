@@ -20,30 +20,14 @@ function usage () {
     error "Usage: $0 [ -prefix <dir> ] [ -libdir <dir> ] [ -mandir <dir> ]"
 }
 
-function check_command () {
-    which "$1" > /dev/null
-    if [ $? -ne 0 ]; then
-	error "Error: \"$1\" not installed"
-    fi
-}
-
-###
-
-check_command "ocamlbuild"
-check_command "ocamlrun"
-check_command "mkdir"
-check_command "pwd"
-check_command "cp"
-check_command "rm"
-
 ###
 
 mkdir -p lib etc man
 
 ###
 
-OCAMLBUILD=$(which ocamlbuild)
-OCAMLRUN=$(which ocamlrun)
+OCAMLBUILD=$(ocamlc -where)/../../bin/ocamlbuild
+OCAMLRUN=$(ocamlc -where)/../../bin/ocamlrun
 VERSION=$(cat VERSION)
 PWD=$(pwd)
 
@@ -114,10 +98,12 @@ let find_prim arity name =
   match arity, name with" >> etc/prim.ml
 
 for prim in $PRIMS; do
-    for ((i=1; i <= MAX_PRIM_ARITY; i++)); do
-        echo "  | $i, \"$prim\" -> Obj.repr ${prim}_$i" >> etc/prim.ml
-    done
-    echo >> etc/prim.ml
+    if [ "$prim" != "caml_ensure_stack_capacity" -a "$prim" != "caml_is_printable" ]; then
+        for ((i=1; i <= MAX_PRIM_ARITY; i++)); do
+            echo "  | $i, \"$prim\" -> Obj.repr ${prim}_$i" >> etc/prim.ml
+        done
+        echo >> etc/prim.ml
+    fi
 done
 
 echo "\
