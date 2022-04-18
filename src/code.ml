@@ -38,7 +38,7 @@ let kosaraju_gen get_nexts instrs =
 let kosaraju instrs =
   kosaraju_gen Instr.get_nexts instrs
 
-(***)
+(******************************************************************************)
   
 let print_gen get_ptrs get_nexts bprint_instr data symb prim oc instrs =
   let open Printf in
@@ -84,11 +84,13 @@ let print_gen get_ptrs get_nexts bprint_instr data symb prim oc instrs =
     Buffer.clear buf;
   done
 
+(***)
+
 let print data symb prim oc instrs =
   print_gen Instr.get_ptrs Instr.get_nexts Instr.bprint data symb prim oc instrs
 
-(***)
-
+(******************************************************************************)
+  
 (* Reduce envacc by the number of code pointers in the corresponding closure *)
 (* Used to convert code having version >= V029 *)
 let normalise_envaccs version instrs =
@@ -155,17 +157,85 @@ let normalise_envaccs version instrs =
       | PUSHENVACC3           -> instrs.(pc) <- make_pushenvacc pc 3
       | PUSHENVACC4           -> instrs.(pc) <- make_pushenvacc pc 4
       | PUSHENVACC n          -> instrs.(pc) <- make_pushenvacc pc n
-      | OFFSETCLOSUREM2       -> instrs.(pc) <- make_offsetclosure (-3)
-      | OFFSETCLOSURE2        -> instrs.(pc) <- make_offsetclosure 3
       | OFFSETCLOSURE ofs     -> instrs.(pc) <- make_offsetclosure ofs
-      | PUSHOFFSETCLOSUREM2   -> instrs.(pc) <- make_pushoffsetclosure (-3)
-      | PUSHOFFSETCLOSURE2    -> instrs.(pc) <- make_pushoffsetclosure 3
       | PUSHOFFSETCLOSURE ofs -> instrs.(pc) <- make_pushoffsetclosure ofs
-      | _            -> ()
+      | _                     -> ()
     done
 
 (***)
 
+(* Reverse of normalise_envaccs for version >= V029 *)
+let denormalise_envaccs version instrs =
+  match version with
+  | Version.V008 | Version.V010 | Version.V011
+  | Version.V022 | Version.V023 | Version.V025
+  | Version.V026 | Version.V027 | Version.V028 ->
+    ()
+  | Version.V029 | Version.V030 | Version.V031 ->
+    let open Instr in
+    let colors = kosaraju instrs in
+    let code_ptr_nb = Hashtbl.create 16 in
+    Array.iter (fun instr ->
+      match instr with
+      | CLOSURE (_, ptr) ->
+        Hashtbl.add code_ptr_nb colors.(ptr) 1
+      | CLOSUREREC (_, _, o, t) ->
+        let delta = 1 + Array.length t in
+        Hashtbl.add code_ptr_nb colors.(o) delta;
+        Array.iteri (fun i ptr -> Hashtbl.add code_ptr_nb colors.(ptr) (delta - i - 1)) t;
+      | _ ->
+        ()
+    ) instrs;
+    let compute_new_ind pc old_ind =
+      match Hashtbl.find_all code_ptr_nb colors.(pc) with
+      | [] -> assert false
+      | [ delta ] -> old_ind + delta
+      | _ :: _ :: _ -> assert false in
+    let make_envacc pc old_ind =
+      match compute_new_ind pc old_ind with
+      | 1 -> ENVACC1
+      | 2 -> ENVACC2
+      | 3 -> ENVACC3
+      | 4 -> ENVACC4
+      | n -> assert (n >= 5); ENVACC n in
+    let make_pushenvacc pc old_ind =
+      match compute_new_ind pc old_ind with
+      | 1 -> PUSHENVACC1
+      | 2 -> PUSHENVACC2
+      | 3 -> PUSHENVACC3
+      | 4 -> PUSHENVACC4
+      | n -> assert (n >= 5); PUSHENVACC n in
+    let make_offsetclosure old_ofs =
+      assert (old_ofs mod 2 = 0);
+      match old_ofs / 2 * 3 with
+      | -3  -> OFFSETCLOSUREM2
+      | +3  -> OFFSETCLOSURE2
+      | ofs -> OFFSETCLOSURE ofs in
+    let make_pushoffsetclosure old_ofs =
+      assert (old_ofs mod 2 = 0);
+      match old_ofs / 2 * 3 with
+      | -3  -> PUSHOFFSETCLOSUREM2
+      | +3  -> PUSHOFFSETCLOSURE2
+      | ofs -> PUSHOFFSETCLOSURE ofs in
+    for pc = 0 to Array.length instrs - 1 do
+      match instrs.(pc) with
+      | ENVACC1               -> instrs.(pc) <- make_envacc pc 1
+      | ENVACC2               -> instrs.(pc) <- make_envacc pc 2
+      | ENVACC3               -> instrs.(pc) <- make_envacc pc 3
+      | ENVACC4               -> instrs.(pc) <- make_envacc pc 4
+      | ENVACC n              -> instrs.(pc) <- make_envacc pc n
+      | PUSHENVACC1           -> instrs.(pc) <- make_pushenvacc pc 1
+      | PUSHENVACC2           -> instrs.(pc) <- make_pushenvacc pc 2
+      | PUSHENVACC3           -> instrs.(pc) <- make_pushenvacc pc 3
+      | PUSHENVACC4           -> instrs.(pc) <- make_pushenvacc pc 4
+      | PUSHENVACC n          -> instrs.(pc) <- make_pushenvacc pc n
+      | OFFSETCLOSURE ofs     -> instrs.(pc) <- make_offsetclosure ofs
+      | PUSHOFFSETCLOSURE ofs -> instrs.(pc) <- make_pushoffsetclosure ofs
+      | _                     -> ()
+    done
+
+(******************************************************************************)
+  
 let read version index ic =
   let open Instr in
   let (offset, length) = Index.find_section index Section.CODE in
@@ -210,7 +280,7 @@ let read version index ic =
     | BGEINT (n, ptr)         -> BGEINT (n, remap_ptr ind 2 ptr)
     | BULTINT (n, ptr)        -> BULTINT (n, remap_ptr ind 2 ptr)
     | BUGEINT (n, ptr)        -> BUGEINT (n, remap_ptr ind 2 ptr)
-    | _ -> instr in
+    | _                       -> instr in
   Array.iteri (fun i ind -> ptr_map.(ind) <- i) inds;
   let instrs = Array.mapi remap_instr instrs in
   normalise_envaccs version instrs;
@@ -219,6 +289,7 @@ let read version index ic =
 (***)
 
 let write version oc code =
+  denormalise_envaccs version code;
   let instr_nb = Array.length code in
   let ptr_map = Array.make instr_nb (-1) in
   let compute_ptrs =
@@ -248,4 +319,4 @@ let size version code =
   ) code;
   !counter * 4
 
-(***)
+(******************************************************************************)
