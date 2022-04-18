@@ -72,7 +72,8 @@ let read version index ic =
 let write version oc table =
   Array.iter (Ident.check_opt version) table;
   let tree = tree_of_table table in
-  let marshaled_value = { num_cnt = Array.length table; num_tbl = tree } in
+  let num_cnt = maxind_of_tree tree + 1 in
+  let marshaled_value = { num_cnt = num_cnt; num_tbl = tree } in
   output_value oc marshaled_value
 
 (******************************************************************************)

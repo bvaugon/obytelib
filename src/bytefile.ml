@@ -54,8 +54,9 @@ let read_vmcmd ic =
 
 let write_vmcmd oc vmpath vmarg =
   match vmpath with None -> () | Some path ->
-    Printf.fprintf oc "#! %s" path;
-    match vmarg with None -> () | Some arg -> Printf.fprintf oc " %s" arg
+    Printf.fprintf oc "#!%s" path;
+    (match vmarg with None -> () | Some arg -> Printf.fprintf oc " %s" arg);
+    Printf.fprintf oc "\n"
   
 let read file_name =
   let ic =
