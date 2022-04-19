@@ -63,7 +63,6 @@ let read version index ic =
   let () = seek_in ic offset in
   let mv = (input_value ic : marshaled_value) in
   let table = table_of_tree mv.num_tbl in
-  assert (mv.num_cnt = Array.length table);
   Array.iter (Ident.check_opt version) table;
   table
 

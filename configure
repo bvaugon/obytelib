@@ -26,10 +26,10 @@ mkdir -p lib etc man
 
 ###
 
-OCAMLBUILD=$(ocamlc -where)/../../bin/ocamlbuild
-OCAMLRUN=$(ocamlc -where)/../../bin/ocamlrun
-VERSION=$(cat VERSION)
-PWD=$(pwd)
+OCAMLBUILD="$(ocamlc -where)/../../bin/ocamlbuild"
+OCAMLRUN="$(ocamlc -where)/../../bin/ocamlrun"
+VERSION="$(cat VERSION)"
+PWD="$(pwd)"
 
 ###
 
