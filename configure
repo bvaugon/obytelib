@@ -75,7 +75,8 @@ PRIMS=$($OCAMLRUN -p |
   grep -v caml_spacetime_only_works_for_native_code |
   grep -v caml_register_code_fragment |
   grep -v caml_get_current_environment |
-  grep -v caml_ensure_stack_capacity)
+  grep -v caml_ensure_stack_capacity |
+  grep -v caml_sys_argv)
 
 echo "\
 include Strsec.Make(struct let section = Section.PRIM end)
@@ -109,6 +110,7 @@ done
 echo "\
   | 1, \"caml_ensure_stack_capacity\" -> Obj.repr (fun _ -> ())
   | 1, \"caml_is_printable\" -> Obj.repr (fun _ -> true)
+  | 1, \"caml_sys_argv\" -> Obj.repr (fun _ -> Sys.argv)
 
   | _ -> Tools.fail \"external function %S of arity %d not found\" name arity
 
